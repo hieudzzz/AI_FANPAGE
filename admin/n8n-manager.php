@@ -460,16 +460,16 @@ if (!defined('ABSPATH'))
                     </div>
                     <div>
                         <label class="aif-form-label">Trạng thái</label>
-                        <div class="aif-status-select-wrap">
-                            <select name="status" id="prod-status">
-                                <option value="active">Đang kinh doanh</option>
-                                <option value="inactive">Ngừng kinh doanh</option>
-                            </select>
-                            <div class="aif-status-display" id="prod-status-display">
-                                <span class="aif-status-dot"></span>
-                                <span class="aif-status-label"></span>
-                                <svg class="aif-status-chevron" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 8l4 4 4-4"/></svg>
-                            </div>
+                        <input type="hidden" name="status" id="prod-status" value="active">
+                        <div class="aif-status-toggle">
+                            <button type="button" class="aif-status-btn aif-status-btn-active active" data-value="active">
+                                <span class="aif-status-btn-dot"></span>
+                                Đang kinh doanh
+                            </button>
+                            <button type="button" class="aif-status-btn aif-status-btn-inactive" data-value="inactive">
+                                <span class="aif-status-btn-dot"></span>
+                                Ngừng kinh doanh
+                            </button>
                         </div>
                     </div>
                 </div>

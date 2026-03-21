@@ -511,28 +511,28 @@ jQuery(document).ready(function ($) {
         });
     });
 
-    // Helper: cập nhật lớp hiển thị custom cho #prod-status
-    function syncStatusSelectStyle() {
-        const val = $('#prod-status').val();
-        const isActive = val === 'active';
-        const $display = $('#prod-status-display');
-        const labels = { active: 'Đang kinh doanh', inactive: 'Ngừng kinh doanh' };
-
-        $display
-            .removeClass('is-active is-inactive')
-            .addClass(isActive ? 'is-active' : 'is-inactive');
-        $display.find('.aif-status-label').text(labels[val] || labels.active);
+    // Helper: set trạng thái cho toggle button theo value
+    function setStatusToggle(val) {
+        $('#prod-status').val(val);
+        $('.aif-status-btn').removeClass('active');
+        $(`.aif-status-btn[data-value="${val}"]`).addClass('active');
     }
 
-    // Add/Edit Product
+    // Nhấn nút toggle
+    $(document).on('click', '.aif-status-btn', function () {
+        setStatusToggle($(this).data('value'));
+    });
+
+    // Add Product
     $('#btn-add-product').on('click', function () {
         $('#aif-product-form')[0].reset();
         $('#prod-id').val('');
         $('#modal-title').text('Thêm sản phẩm mới');
         $('#aif-product-modal').addClass('active');
-        syncStatusSelectStyle();
+        setStatusToggle('active');
     });
 
+    // Edit Product
     $(document).on('click', '.btn-edit-prod', function () {
         const id = $(this).data('id');
         const p = productsList.find(x => x.id == id);
@@ -542,15 +542,16 @@ jQuery(document).ready(function ($) {
         $('#prod-cat').val(p.category);
         $('#prod-sku').val(p.sku);
         $('#prod-price').val(p.price);
-        $('#prod-status').val(p.status);
         $('#prod-desc').val(p.description);
         $('#modal-title').text('Sửa: ' + p.product_name);
         $('#aif-product-modal').addClass('active');
-        syncStatusSelectStyle();
+        setStatusToggle(p.status || 'active');
     });
 
     // Đổi màu live khi user chọn trạng thái khác
-    $(document).on('change', '#prod-status', syncStatusSelectStyle);
+    $(document).on('change', '#prod-status', function() {
+        setStatusToggle($(this).val());
+    });
 
     $('#aif-product-form').on('submit', function (e) {
         e.preventDefault();

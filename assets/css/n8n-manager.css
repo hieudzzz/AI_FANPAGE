@@ -923,108 +923,72 @@
         color: #059669 !important;
     }
 
-    /* ── Status select: Trạng thái sản phẩm ── */
-    .aif-status-select-wrap {
-        position: relative;
-    }
-
-    /* Ẩn native select nhưng vẫn nhận click để mở dropdown */
-    .aif-status-select-wrap #prod-status {
-        position: absolute !important;
-        inset: 0 !important;
-        width: 100% !important;
-        height: 100% !important;
-        opacity: 0 !important;
-        cursor: pointer !important;
-        z-index: 2 !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        border: none !important;
-        background: transparent !important;
-        box-shadow: none !important;
-    }
-
-    /* Lớp hiển thị đè lên trên */
-    .aif-status-display {
-        position: relative;
-        z-index: 1;
+    /* ── Status toggle: Trạng thái sản phẩm ── */
+    .aif-status-toggle {
         display: flex;
-        align-items: center;
-        gap: 8px;
-        width: 100%;
-        padding: 10px 38px 10px 14px;
+        gap: 0;
         border-radius: 10px;
         border: 2px solid #e2e8f0;
-        background: #fafbfc;
+        overflow: hidden;
+        background: #f8fafc;
+    }
+
+    .aif-status-btn {
+        flex: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        padding: 9px 14px;
         font-size: 13px;
-        font-weight: 700;
+        font-weight: 600;
+        color: #94a3b8;
+        background: transparent;
+        border: none;
         cursor: pointer;
-        transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
-        box-sizing: border-box;
-        user-select: none;
-    }
-
-    .aif-status-select-wrap:hover .aif-status-display {
-        border-color: #cbd5e1;
-    }
-
-    .aif-status-select-wrap #prod-status:focus ~ .aif-status-display {
+        transition: background 0.18s, color 0.18s;
+        line-height: 1;
         outline: none;
-        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
     }
 
-    .aif-status-dot {
-        display: inline-block;
-        width: 9px;
-        height: 9px;
+    .aif-status-btn + .aif-status-btn {
+        border-left: 2px solid #e2e8f0;
+    }
+
+    .aif-status-btn:hover:not(.active) {
+        background: #f1f5f9;
+        color: #64748b;
+    }
+
+    .aif-status-btn-dot {
+        width: 8px;
+        height: 8px;
         border-radius: 50%;
+        background: #cbd5e1;
         flex-shrink: 0;
-        transition: background 0.2s;
+        transition: background 0.18s, box-shadow 0.18s;
     }
 
-    .aif-status-chevron {
-        width: 16px;
-        height: 16px;
-        position: absolute;
-        right: 12px;
-        top: 50%;
-        transform: translateY(-50%);
-        opacity: 0.5;
-        flex-shrink: 0;
-    }
-
-    /* Active state */
-    .aif-status-display.is-active {
+    /* Active btn — Đang kinh doanh */
+    .aif-status-btn-active.active {
         background: #f0fdf4;
-        border-color: #86efac;
         color: #16a34a;
+        font-weight: 700;
     }
-    .aif-status-display.is-active .aif-status-dot {
+    .aif-status-btn-active.active .aif-status-btn-dot {
         background: #22c55e;
-        box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
-    }
-    .aif-status-select-wrap:hover .aif-status-display.is-active {
-        border-color: #4ade80;
-    }
-    .aif-status-select-wrap #prod-status:focus ~ .aif-status-display.is-active {
-        box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+        box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.25);
     }
 
-    /* Inactive state */
-    .aif-status-display.is-inactive {
+    /* Inactive btn — Ngừng kinh doanh */
+    .aif-status-btn-inactive.active {
         background: #fff1f2;
-        border-color: #fca5a5;
         color: #dc2626;
+        font-weight: 700;
     }
-    .aif-status-display.is-inactive .aif-status-dot {
+    .aif-status-btn-inactive.active .aif-status-btn-dot {
         background: #ef4444;
-        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
-    }
-    .aif-status-select-wrap:hover .aif-status-display.is-inactive {
-        border-color: #f87171;
-    }
-    .aif-status-select-wrap #prod-status:focus ~ .aif-status-display.is-inactive {
-        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25);
     }
 
     /* ============================================================
