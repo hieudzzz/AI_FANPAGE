@@ -147,7 +147,8 @@ class AIF_N8N_DB
         return $wpdb->get_results("
             SELECT c.*, COALESCE(p.page_name, c.page_id) as page_name
             FROM $this->table_chats c
-            LEFT JOIN {$wpdb->prefix}aif_facebook_pages p ON p.page_id = c.page_id
+            LEFT JOIN {$wpdb->prefix}aif_facebook_pages p
+                ON TRIM(CAST(p.page_id AS CHAR)) = TRIM(CAST(c.page_id AS CHAR))
             ORDER BY c.updated_at DESC
         ");
     }
@@ -173,7 +174,8 @@ class AIF_N8N_DB
                        c.page_id, COALESCE(p.page_name, c.page_id) as page_name
                 FROM $this->table_leads l
                 LEFT JOIN $this->table_chats c ON l.session_id = c.id
-                LEFT JOIN {$wpdb->prefix}aif_facebook_pages p ON p.page_id = c.page_id
+                LEFT JOIN {$wpdb->prefix}aif_facebook_pages p
+                    ON TRIM(CAST(p.page_id AS CHAR)) = TRIM(CAST(c.page_id AS CHAR))
                 WHERE (l.phone IS NOT NULL AND l.phone != '' AND l.phone != '---')
                    OR (l.address IS NOT NULL AND l.address != '' AND l.address != '---')
                 ORDER BY l.created_at DESC";

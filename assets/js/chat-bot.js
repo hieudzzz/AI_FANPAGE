@@ -128,7 +128,7 @@ jQuery(document).ready(function ($) {
                     if (c.page_id) pages[String(c.page_id)] = c.page_name || c.page_id;
                 });
                 Object.entries(pages).forEach(([id, name]) => {
-                    $group.append(`<button class="aif-filter-btn" data-page="${id}">${name}</button>`);
+                    $group.append(`<button class="aif-filter-btn" data-page="${id}" data-name="${name}">${name}</button>`);
                 });
             }
 
@@ -209,7 +209,7 @@ jQuery(document).ready(function ($) {
         $group.find('.aif-filter-btn').each(function() {
             const pg   = String($(this).data('page') || '');
             const cnt  = pg ? allChatsCache.filter(c => String(c.page_id) === pg).length : allChatsCache.length;
-            const name = pg ? ($(this).text().replace(/\s*\d+$/, '').trim()) : 'Tất cả';
+            const name = pg ? ($(this).data('name') || $(this).data('page')) : 'Tất cả';
             $(this).html(`${name} <span class="aif-filter-count">${cnt}</span>`);
         });
 
