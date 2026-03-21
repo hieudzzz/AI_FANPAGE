@@ -50,9 +50,11 @@ class AI_Fanpage
 
     private function init_hooks()
     {
-        add_action('admin_menu', [$this, 'register_admin_menu']);
-        add_action('admin_head',  [$this, 'highlight_parent_menu']);
-        add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_assets']);
+        add_action('admin_menu',             [$this, 'register_admin_menu']);
+        add_action('admin_head',             [$this, 'highlight_parent_menu']);
+        add_action('admin_head',             [$this, 'render_menu_badge_styles']);
+        add_action('admin_footer',           [$this, 'render_menu_badge_script']);
+        add_action('admin_enqueue_scripts',  [$this, 'enqueue_admin_assets']);
 
         // Start session for admin messages
         add_action('init', function () {
@@ -907,6 +909,53 @@ class AI_Fanpage
         );
     }
 
+    /** CSS badge — inject vào <head> trên toàn bộ admin */
+    public function render_menu_badge_styles()
+    {
+        echo '<style>
+            #adminmenu a[href*="page=ai-fanpage-post-detail"] { display: none !important; }
+            #adminmenu .aif-menu-badge {
+                display: inline-block;
+                background: #ef4444;
+                color: #fff;
+                font-size: 10px;
+                font-weight: 700;
+                line-height: 1;
+                padding: 2px 6px;
+                border-radius: 10px;
+                margin-left: 5px;
+                vertical-align: middle;
+            }
+            #adminmenu .aif-menu-badge-chat {
+                background: #f97316;
+                animation: aif-badge-pulse 2s infinite;
+            }
+            @keyframes aif-badge-pulse {
+                0%, 100% { opacity: 1; }
+                50%       { opacity: 0.6; }
+            }
+        </style>';
+    }
+
+    /** JS badge — inject vào <footer> trên toàn bộ admin, sau khi DOM sẵn sàng */
+    public function render_menu_badge_script()
+    {
+        $unread = $this->get_unread_chat_count();
+        ?>
+        <script>
+        (function($) {
+            var unread = <?php echo $unread; ?>;
+            var $link  = $('#adminmenu a[href*="page=ai-fanpage-chatbot"]').first();
+            if (!$link.length) return;
+            $link.find('.aif-menu-badge-chat').remove();
+            if (unread > 0) {
+                $link.append('<span class="aif-menu-badge aif-menu-badge-chat">' + unread + '</span>');
+            }
+        })(jQuery);
+        </script>
+        <?php
+    }
+
     public function register_admin_menu()
     {
         // Main Menu (Dashboard)
@@ -1083,31 +1132,6 @@ class AI_Fanpage
                 'wp_att_urls'    => $wp_att_urls,
             ]);
         }
-
-        // Ẩn menu item "Chi tiết bài viết" khỏi sidebar (trang hidden, chỉ mở từ link)
-        wp_add_inline_style('aif-admin-style', '
-            #adminmenu a[href*="page=ai-fanpage-post-detail"] { display: none !important; }
-            #adminmenu .aif-menu-badge {
-                display: inline-block;
-                background: #ef4444;
-                color: #fff;
-                font-size: 10px;
-                font-weight: 700;
-                line-height: 1;
-                padding: 2px 6px;
-                border-radius: 10px;
-                margin-left: 5px;
-                vertical-align: middle;
-            }
-            #adminmenu .aif-menu-badge-chat {
-                background: #f97316;
-                animation: aif-badge-pulse 2s infinite;
-            }
-            @keyframes aif-badge-pulse {
-                0%, 100% { opacity: 1; }
-                50%       { opacity: 0.6; }
-            }
-        ');
 
         // Then enqueue our script which depends on jQuery and Toast
         wp_enqueue_script('aif-toast-script',  AIF_URL . 'assets/js/aif-toast.js',    [], filemtime(AIF_PATH . 'assets/js/aif-toast.js'),    true);

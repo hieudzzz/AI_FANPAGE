@@ -883,6 +883,8 @@ jQuery(document).ready(function ($) {
     loadLeads();
     startPolling();
 
-    // Đang ở trang Chatbot → xóa badge trên menu sidebar ngay lập tức
-    $('#adminmenu a[href*="page=ai-fanpage-chatbot"]').find('.aif-menu-badge-chat').remove();
+    // Chỉ xóa badge khi đang đứng đúng trang Chatbot
+    if (window.location.search.indexOf('page=ai-fanpage-chatbot') !== -1) {
+        $('#adminmenu a[href*="page=ai-fanpage-chatbot"]').find('.aif-menu-badge-chat').remove();
+    }
 });
