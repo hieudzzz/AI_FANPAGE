@@ -55,7 +55,7 @@ $counts = $db->get_counts();
         <div style="display: flex; gap: 15px; align-items: center;">
             <button type="button" id="btn-open-tones" title="Phong cách viết"
                 style="display:inline-flex;align-items:center;gap:10px;padding:12px 24px;border:1.5px solid #c7d2fe;border-radius:12px;background:#fff;font-size:14px;font-weight:700;color:#4f46e5;cursor:pointer;transition:all .15s;white-space:nowrap;box-shadow:0 4px 12px rgba(79,70,229,0.08);">
-                <span class="dashicons dashicons-editor-textcolor" style="font-size:16px;width:16px;height:16px;"></span>
+                <span class="dashicons dashicons-art" style="font-size:16px;width:16px;height:16px;"></span>
                 Phong cách viết
             </button>
             <a href="<?php echo admin_url('admin.php?page=ai-fanpage-post-detail&action=new'); ?>"
@@ -1147,7 +1147,7 @@ $counts = $db->get_counts();
         <div style="padding:20px 24px;background:linear-gradient(135deg,#4f46e5,#7c3aed);position:relative;flex-shrink:0;">
             <div style="display:flex;align-items:center;gap:12px;">
                 <div style="width:40px;height:40px;background:rgba(255,255,255,0.2);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                    <span class="dashicons dashicons-editor-textcolor" style="color:#fff;font-size:20px;width:20px;height:20px;"></span>
+                    <span class="dashicons dashicons-art" style="color:#fff;font-size:20px;width:20px;height:20px;"></span>
                 </div>
                 <div>
                     <h3 style="margin:0;font-size:16px;font-weight:800;color:#fff;">Phong cách viết</h3>
