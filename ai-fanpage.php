@@ -125,6 +125,12 @@ class AI_Fanpage
         add_action('wp_ajax_aif_n8n_check_updates', [$this, 'handle_n8n_check_updates']);
         add_action('wp_ajax_aif_n8n_mark_chat_viewed', [$this, 'handle_n8n_mark_chat_viewed']);
         add_action('wp_ajax_aif_n8n_mark_leads_viewed', [$this, 'handle_n8n_mark_leads_viewed']);
+
+        // Tones (phong cách viết)
+        add_action('wp_ajax_aif_get_tones',    [$this, 'handle_tone_get_all']);
+        add_action('wp_ajax_aif_tone_save',    [$this, 'handle_tone_save']);
+        add_action('wp_ajax_aif_tone_delete',  [$this, 'handle_tone_delete']);
+        add_action('wp_ajax_aif_tone_reorder', [$this, 'handle_tone_reorder']);
     }
 
     private function includes()
@@ -136,6 +142,10 @@ class AI_Fanpage
 
         // Đảm bảo bảng aif_settings tồn tại (cho trường hợp plugin update không chạy lại activate)
         AIF_Settings::create_table();
+
+        // Auto-upgrade: tạo bảng tones nếu chưa tồn tại
+        require_once AIF_PATH . 'includes/class-tones-db.php';
+        AIF_Tones_DB::create_table();
 
         // Auto-upgrade: tạo bảng media mới nếu chưa tồn tại
         global $wpdb;
@@ -165,6 +175,7 @@ class AI_Fanpage
         require_once AIF_PATH . 'includes/class-n8n-db.php';
         require_once AIF_PATH . 'includes/class-n8n-ai.php';
         require_once AIF_PATH . 'includes/class-n8n-handler.php';
+        require_once AIF_PATH . 'includes/class-tones-db.php';
     }
 
     // --- AJAX Callback Implementations ---
@@ -1403,6 +1414,67 @@ class AI_Fanpage
     public function render_ai_settings()
     {
         include AIF_PATH . 'admin/settings-ai.php';
+    }
+
+    public function render_tones()
+    {
+        include AIF_PATH . 'admin/tones-manager.php';
+    }
+
+    // ── Tones AJAX ────────────────────────────────────────────────────────────
+    public function handle_tone_get_all()
+    {
+        check_ajax_referer('aif_nonce', 'nonce');
+        if (!current_user_can('manage_options')) wp_send_json_error('Unauthorized');
+        wp_send_json_success((new AIF_Tones_DB())->get_all());
+    }
+
+    public function handle_tone_save()
+    {
+        check_ajax_referer('aif_nonce', 'nonce');
+        if (!current_user_can('manage_options')) wp_send_json_error('Unauthorized');
+
+        $id    = intval($_POST['id'] ?? 0);
+        $label = sanitize_text_field($_POST['label'] ?? '');
+        $desc  = sanitize_text_field($_POST['description'] ?? '');
+        $style = sanitize_textarea_field($_POST['style'] ?? '');
+
+        if (!$label || !$style) wp_send_json_error('Thiếu dữ liệu');
+
+        $db = new AIF_Tones_DB();
+        if ($id) {
+            $db->update($id, ['label' => $label, 'description' => $desc, 'style' => $style]);
+            $tone = $db->get($id);
+        } else {
+            $new_id = $db->insert(['label' => $label, 'description' => $desc, 'style' => $style]);
+            $tone   = $db->get($new_id);
+        }
+
+        wp_send_json_success($tone);
+    }
+
+    public function handle_tone_delete()
+    {
+        check_ajax_referer('aif_nonce', 'nonce');
+        if (!current_user_can('manage_options')) wp_send_json_error('Unauthorized');
+
+        $id = intval($_POST['id'] ?? 0);
+        if (!$id) wp_send_json_error('ID không hợp lệ');
+
+        (new AIF_Tones_DB())->delete($id);
+        wp_send_json_success();
+    }
+
+    public function handle_tone_reorder()
+    {
+        check_ajax_referer('aif_nonce', 'nonce');
+        if (!current_user_can('manage_options')) wp_send_json_error('Unauthorized');
+
+        $ids = array_map('intval', (array) ($_POST['ids'] ?? []));
+        if (empty($ids)) wp_send_json_error('Không có dữ liệu');
+
+        (new AIF_Tones_DB())->reorder($ids);
+        wp_send_json_success();
     }
 
     // --- N8N AJAX Implementations ---

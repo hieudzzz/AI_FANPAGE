@@ -27,15 +27,38 @@ class AIF_AI_Generator
         'chuyen_nghiep' => ['label' => '💼 Chuyên nghiệp', 'desc' => 'Lịch sự, trau chuốt — phù hợp môi trường doanh nghiệp. Thuyết phục, đáng tin cậy, không dùng ngôn ngữ thông tục.',    'style' => 'Giọng văn chuyên nghiệp, lịch sự, phù hợp môi trường doanh nghiệp. Ngôn ngữ trau chuốt, thuyết phục, đáng tin cậy.'],
     ];
 
-    /** Lấy tones mặc định (không có custom) */
+    /** Lấy tones mặc định (không có custom) — giữ lại để backward compat */
     public static function get_tones()
     {
         return self::$tone_map;
     }
 
-    /** Lấy tất cả tones: mặc định + custom từ DB */
+    /**
+     * Lấy tất cả tones từ DB (bảng aif_tones).
+     * Fallback về $tone_map cũ nếu DB chưa sẵn sàng.
+     * Trả về array: [ tone_key => ['label', 'description', 'style', 'custom'] ]
+     */
     public static function get_all_tones()
     {
+        if ( class_exists('AIF_Tones_DB') ) {
+            $db    = new AIF_Tones_DB();
+            $rows  = $db->get_all();
+            if ( ! empty($rows) ) {
+                $result = [];
+                foreach ( $rows as $t ) {
+                    $result[ $t->tone_key ] = [
+                        'id'          => $t->id,
+                        'label'       => $t->label,
+                        'desc'        => $t->description,   // alias cho backward compat
+                        'description' => $t->description,
+                        'style'       => $t->style,
+                        'custom'      => intval($t->is_default) === 0 ? true : false,
+                    ];
+                }
+                return $result;
+            }
+        }
+        // Fallback nếu DB chưa migrate
         $custom = get_option('aif_custom_tones', []);
         return array_merge(self::$tone_map, is_array($custom) ? $custom : []);
     }

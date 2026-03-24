@@ -545,7 +545,7 @@ jQuery(document).ready(function ($) {
         $(this).css('border-color', '#e2e8f0');
     });
 
-    // Lưu tone mới
+    // Lưu tone mới — gọi endpoint DB (aif_tone_save)
     $(document).on('click', '#aif-tone-modal-save', function () {
         const label = $('#tone-modal-label').val().trim();
         const desc  = $('#tone-modal-desc').val().trim();
@@ -566,7 +566,7 @@ jQuery(document).ready(function ($) {
         const orig  = $btn.html();
         $btn.html('<span class="dashicons dashicons-update" style="font-size:14px;width:14px;height:14px;display:inline-block;animation:aif-rotate .7s linear infinite;"></span> Đang lưu...');
 
-        $.post(ajaxUrl, { action: 'aif_save_custom_tone', nonce, label, desc, style }, function (res) {
+        $.post(ajaxUrl, { action: 'aif_tone_save', nonce, label, description: desc, style }, function (res) {
             $btn.prop('disabled', false).html(orig);
             if (!res.success) {
                 if (window.AIF_Toast) AIF_Toast.show('Lỗi: ' + res.data, 'error');
@@ -576,15 +576,17 @@ jQuery(document).ready(function ($) {
             if (window.AIF_Toast) AIF_Toast.show('Đã thêm phong cách "' + label + '"!', 'success');
 
             // Chèn button mới vào grid trước nút "Thêm mới"
-            const key  = res.data.key;
+            const tone = res.data; // { id, tone_key, label, description, style, ... }
+            const key  = tone.tone_key;
             const $new = $(`<button type="button"
                 class="aif-tone-btn aif-tone-custom"
                 data-tone="${key}"
-                data-desc="${$('<div>').text(desc).html()}"
+                data-desc="${$('<div>').text(tone.description || '').html()}"
                 data-custom="1"
-                data-label="${$('<div>').text(label).html()}">
-                ${$('<div>').text(label).html()}
-                <span class="aif-tone-custom-del" data-key="${key}" title="Xóa phong cách này">×</span>
+                data-id="${tone.id}"
+                data-label="${$('<div>').text(tone.label).html()}">
+                ${$('<div>').text(tone.label).html()}
+                <span class="aif-tone-custom-del" data-key="${key}" data-id="${tone.id}" title="Xóa phong cách này">×</span>
             </button>`);
             $('#aif-tone-add-btn').before($new);
 
@@ -595,18 +597,18 @@ jQuery(document).ready(function ($) {
         });
     });
 
-    // Xóa custom tone
+    // Xóa custom tone — gọi endpoint DB (aif_tone_delete)
     $(document).on('click', '.aif-tone-custom-del', function (e) {
         e.stopPropagation();
         $toneTooltip.hide();
         const key   = $(this).data('key');
+        const id    = $(this).data('id');
         const label = $(this).closest('.aif-tone-btn').data('label') || '';
         if (!confirm('Xóa phong cách "' + label + '"?\nHành động này không thể hoàn tác.')) return;
 
         const $btn = $(this).closest('.aif-tone-btn');
-        $.post(ajaxUrl, { action: 'aif_delete_custom_tone', nonce, key }, function (res) {
+        $.post(ajaxUrl, { action: 'aif_tone_delete', nonce, id }, function (res) {
             if (res.success) {
-                // Nếu đang chọn tone này thì reset
                 if ($('#aif-tone-input').val() === key) $('#aif-tone-input').val('');
                 $btn.remove();
                 if (window.AIF_Toast) AIF_Toast.show('Đã xóa phong cách.', 'success');

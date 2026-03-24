@@ -53,15 +53,16 @@ $counts = $db->get_counts();
                 mạnh AI.</p>
         </div>
         <div style="display: flex; gap: 15px; align-items: center;">
+            <button type="button" id="btn-open-tones" title="Phong cách viết"
+                style="display:inline-flex;align-items:center;gap:10px;padding:12px 24px;border:1.5px solid #c7d2fe;border-radius:12px;background:#fff;font-size:14px;font-weight:700;color:#4f46e5;cursor:pointer;transition:all .15s;white-space:nowrap;box-shadow:0 4px 12px rgba(79,70,229,0.08);">
+                <span class="dashicons dashicons-editor-textcolor" style="font-size:16px;width:16px;height:16px;"></span>
+                Phong cách viết
+            </button>
             <a href="<?php echo admin_url('admin.php?page=ai-fanpage-post-detail&action=new'); ?>"
                 class="aif-btn-premium" style="text-decoration: none;">
                 <span class="dashicons dashicons-plus-alt2"></span>
                 <span>Viết bài mới</span>
             </a>
-            <!-- <button id="btn-import-gsheet-trigger" class="aif-btn-secondary">
-                <span class="dashicons dashicons-update"></span>
-                <span>Sync Google Sheet</span>
-            </button> -->
         </div>
     </div>
 
@@ -592,7 +593,7 @@ $counts = $db->get_counts();
             white-space: pre-wrap;
             word-break: break-word;
             z-index: 9999;
-            box-shadow: 0 8px 24px rgba(0,0,0,.25);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, .25);
             transition: opacity .15s, visibility .15s;
             pointer-events: none;
             font-weight: 400;
@@ -820,7 +821,7 @@ $counts = $db->get_counts();
                         // Status styling
                         $status_label = AIF_Status::label($post->status);
                         $status_class = AIF_Status::badge_class($post->status);
-                        ?>
+                    ?>
                         <tr id="post-<?php echo $post_id; ?>"
                             class="<?php echo ($post->status === 'Posted successfully' || $is_queued) ? 'locked' : ''; ?>"
                             data-status="<?php echo esc_attr($post->status); ?>" data-stt="<?php echo $offset + 1; ?>">
@@ -939,7 +940,7 @@ $counts = $db->get_counts();
                                                 $parts = explode('_', $link);
                                                 $link = "https://www.facebook.com/{$parts[0]}/posts/{$parts[1]}";
                                             }
-                                            ?>
+                                        ?>
                                             <a href="<?php echo esc_url($link); ?>" target="_blank" class="platform-icon">
                                                 <span class="dashicons <?php echo $icon; ?>"
                                                     style="font-size: 18px; width: 18px; height: 18px;"></span>
@@ -1110,7 +1111,7 @@ $counts = $db->get_counts();
                     </a>
                 <?php elseif ($i == $paged - $range - 1 || $i == $paged + $range + 1): ?>
                     <span style="color: var(--aif-text-muted);">...</span>
-                <?php endif;
+            <?php endif;
             endfor; ?>
 
             <a href="<?php echo add_query_arg('paged', min($total_pages, $paged + 1)); ?>"
@@ -1138,6 +1139,232 @@ $counts = $db->get_counts();
     </div>
 </div>
 
+<!-- ===== MODAL: Phong cách viết ===== -->
+<div id="aif-tones-modal" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,0.55);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:16px;width:100%;max-width:780px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 25px 60px rgba(0,0,0,0.25);margin:20px;overflow:hidden;">
+
+        <!-- Header -->
+        <div style="padding:20px 24px;background:linear-gradient(135deg,#4f46e5,#7c3aed);position:relative;flex-shrink:0;">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <div style="width:40px;height:40px;background:rgba(255,255,255,0.2);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <span class="dashicons dashicons-editor-textcolor" style="color:#fff;font-size:20px;width:20px;height:20px;"></span>
+                </div>
+                <div>
+                    <h3 style="margin:0;font-size:16px;font-weight:800;color:#fff;">Phong cách viết</h3>
+                    <p style="margin:2px 0 0;font-size:12px;color:rgba(255,255,255,0.8);">Định nghĩa giọng văn AI dùng khi soạn bài</p>
+                </div>
+            </div>
+            <button type="button" id="btn-close-tones-modal" style="position:absolute;top:14px;right:16px;background:rgba(255,255,255,0.2);border:none;color:#fff;width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;line-height:1;">&times;</button>
+        </div>
+
+        <!-- Toolbar -->
+        <div style="padding:14px 20px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:#fafafa;">
+            <span style="font-size:12px;color:#64748b;" id="tones-count-label">Đang tải...</span>
+            <button type="button" id="btn-tone-add" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">
+                <span class="dashicons dashicons-plus-alt2" style="font-size:14px;width:14px;height:14px;"></span>
+                Thêm phong cách
+            </button>
+        </div>
+
+        <!-- List -->
+        <div id="tones-list" style="flex:1;overflow-y:auto;padding:0;">
+            <div style="text-align:center;padding:50px;color:#94a3b8;">
+                <div class="spinner is-active" style="float:none;margin:0 auto 12px;"></div>Đang tải...
+            </div>
+        </div>
+
+        <!-- Form thêm/sửa -->
+        <div id="tones-form-area" style="display:none;padding:20px 24px;border-top:2px solid #e0e7ff;background:#f8f7ff;flex-shrink:0;">
+            <input type="hidden" id="tone-edit-id" value="">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+                <div>
+                    <label style="display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:5px;">Tên phong cách <span style="color:#ef4444;">*</span></label>
+                    <input type="text" id="tone-label" placeholder="VD: 😊 Thân thiện" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;outline:none;">
+                </div>
+                <div>
+                    <label style="display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:5px;">Mô tả ngắn</label>
+                    <input type="text" id="tone-description" placeholder="VD: Gần gũi, vui vẻ, dễ tiếp cận" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;outline:none;">
+                </div>
+            </div>
+            <div style="margin-bottom:14px;">
+                <label style="display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:5px;">Hướng dẫn cho AI <span style="color:#ef4444;">*</span></label>
+                <textarea id="tone-style" rows="3" placeholder="VD: Viết theo phong cách thân thiện, dùng ngôn ngữ tự nhiên, thêm emoji vừa phải..." style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;outline:none;resize:vertical;font-family:inherit;line-height:1.5;"></textarea>
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:10px;">
+                <button type="button" id="btn-tone-cancel" style="padding:8px 18px;border:1.5px solid #e2e8f0;border-radius:8px;background:#fff;font-size:13px;font-weight:600;color:#64748b;cursor:pointer;">Hủy</button>
+                <button type="button" id="btn-tone-save" style="padding:8px 18px;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+                    <span class="dashicons dashicons-saved" style="font-size:14px;width:14px;height:14px;"></span>Lưu
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    jQuery(function($) {
+        // ── Helpers ───────────────────────────────────────────────────────────
+        function escTone(s) {
+            return $('<div>').text(s || '').html();
+        }
+
+        // ── Cache tones trong bộ nhớ — tránh AJAX thừa ──────────────────────
+        var tonesCache = null; // null = chưa load lần nào
+
+        // ── Open / Close modal ───────────────────────────────────────────────
+        $('#btn-open-tones').on('click', function() {
+            $('#aif-tones-modal').css('display', 'flex');
+            if (tonesCache === null) {
+                // Lần đầu mở: load từ server
+                loadTones();
+            } else {
+                // Đã có cache: render ngay, không gọi AJAX
+                renderTones(tonesCache);
+            }
+        });
+        $('#btn-close-tones-modal').on('click', closeToneModal);
+        $('#aif-tones-modal').on('click', function(e) {
+            if (e.target === this) closeToneModal();
+        });
+
+        function closeToneModal() {
+            $('#aif-tones-modal').css('display', 'none');
+            resetForm();
+        }
+
+        // ── Load từ server → cập nhật cache → render ─────────────────────────
+        function loadTones() {
+            $('#tones-list').html('<div style="text-align:center;padding:50px;color:#94a3b8;"><div class="spinner is-active" style="float:none;margin:0 auto 12px;"></div>Đang tải...</div>');
+            $.post(aif_ajax.ajax_url, {
+                action: 'aif_get_tones',
+                nonce: aif_ajax.nonce
+            }, function(res) {
+                if (!res.success) return;
+                tonesCache = res.data; // lưu cache
+                renderTones(tonesCache);
+            });
+        }
+
+        // ── Render từ data (dùng cache hoặc data server) ─────────────────────
+        function renderTones(tones) {
+            $('#tones-count-label').text(tones.length + ' phong cách');
+            if (!tones.length) {
+                $('#tones-list').html('<div style="text-align:center;padding:60px;color:#94a3b8;font-size:14px;">Chưa có phong cách nào. Nhấn <b>Thêm</b> để tạo mới.</div>');
+                return;
+            }
+            var html = '';
+            tones.forEach(function(t) {
+                var isDefault = parseInt(t.is_default);
+                html += '<div class="tone-item" data-id="' + t.id + '" style="display:flex;align-items:flex-start;gap:14px;padding:14px 20px;border-bottom:1px solid #f1f5f9;background:#fff;transition:background .15s;">' +
+                    '<div style="flex:1;min-width:0;">' +
+                    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">' +
+                    '<span style="font-size:14px;font-weight:700;color:#1e293b;">' + escTone(t.label) + '</span>' +
+                    (isDefault ? '<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:#ede9fe;color:#7c3aed;">Mặc định</span>' : '') +
+                    '</div>' +
+                    (t.description ? '<div style="font-size:12px;color:#64748b;margin-bottom:5px;">' + escTone(t.description) + '</div>' : '') +
+                    '<div style="font-size:12px;color:#94a3b8;line-height:1.5;white-space:pre-wrap;">' + escTone(t.style) + '</div>' +
+                    '</div>' +
+                    '<div style="display:flex;gap:6px;flex-shrink:0;padding-top:2px;">' +
+                    '<button class="button button-small btn-tone-edit" data-id="' + t.id + '" style="border-radius:6px;border-color:#e2e8f0;color:#4f46e5;padding:4px 10px;" title="Sửa"><span class="dashicons dashicons-edit" style="font-size:13px;margin-top:3px;"></span></button>' +
+                    (isDefault ? '' : '<button class="button button-small btn-tone-delete" data-id="' + t.id + '" data-label="' + escTone(t.label) + '" style="border-radius:6px;border-color:#fee2e2;color:#ef4444;padding:4px 8px;" title="Xóa"><span class="dashicons dashicons-trash" style="font-size:13px;margin-top:3px;"></span></button>') +
+                    '</div>' +
+                    '</div>';
+            });
+            $('#tones-list').html(html);
+        }
+
+        // ── Form show/hide ───────────────────────────────────────────────────
+        function showForm(tone) {
+            if (tone) {
+                $('#tone-edit-id').val(tone.id);
+                $('#tone-label').val(tone.label);
+                $('#tone-description').val(tone.description);
+                $('#tone-style').val(tone.style);
+            } else {
+                resetForm();
+            }
+            $('#tones-form-area').slideDown(150);
+            setTimeout(function() { $('#tone-label').focus(); }, 160);
+        }
+
+        function resetForm() {
+            $('#tone-edit-id').val('');
+            $('#tone-label').val('');
+            $('#tone-description').val('');
+            $('#tone-style').val('');
+            $('#tones-form-area').slideUp(150);
+        }
+
+        $('#btn-tone-add').on('click', function() { showForm(null); });
+        $('#btn-tone-cancel').on('click', resetForm);
+
+        // ── Edit — dùng cache, không gọi AJAX ────────────────────────────────
+        $(document).on('click', '.btn-tone-edit', function() {
+            var id = $(this).data('id');
+            var t = (tonesCache || []).find(function(x) {
+                return String(x.id) === String(id);
+            });
+            if (t) {
+                showForm(t);
+            } else {
+                // Fallback nếu cache chưa có (không thể xảy ra bình thường)
+                $.post(aif_ajax.ajax_url, { action: 'aif_get_tones', nonce: aif_ajax.nonce }, function(res) {
+                    if (!res.success) return;
+                    tonesCache = res.data;
+                    var found = tonesCache.find(function(x) { return String(x.id) === String(id); });
+                    if (found) showForm(found);
+                });
+            }
+        });
+
+        // ── Save ─────────────────────────────────────────────────────────────
+        $('#btn-tone-save').on('click', function() {
+            var id    = $('#tone-edit-id').val();
+            var label = $('#tone-label').val().trim();
+            var desc  = $('#tone-description').val().trim();
+            var style = $('#tone-style').val().trim();
+            if (!label) { alert('Vui lòng nhập tên phong cách.'); $('#tone-label').focus(); return; }
+            if (!style) { alert('Vui lòng nhập hướng dẫn cho AI.'); $('#tone-style').focus(); return; }
+
+            var $btn = $(this).prop('disabled', true);
+            $.post(aif_ajax.ajax_url, {
+                action: 'aif_tone_save',
+                nonce: aif_ajax.nonce,
+                id: id, label: label, description: desc, style: style
+            }, function(res) {
+                $btn.prop('disabled', false);
+                if (res.success) {
+                    resetForm();
+                    tonesCache = null; // buộc reload từ server để có data mới nhất
+                    loadTones();
+                    if (window.AIF_Toast) AIF_Toast.show(id ? 'Đã cập nhật phong cách!' : 'Đã thêm phong cách mới!', 'success');
+                } else {
+                    alert(res.data || 'Lỗi lưu');
+                }
+            });
+        });
+
+        // ── Delete ───────────────────────────────────────────────────────────
+        $(document).on('click', '.btn-tone-delete', function() {
+            var id    = $(this).data('id');
+            var label = $(this).data('label');
+            if (!confirm('Xóa phong cách "' + label + '"?\nHành động này không thể hoàn tác.')) return;
+            $.post(aif_ajax.ajax_url, {
+                action: 'aif_tone_delete',
+                nonce: aif_ajax.nonce,
+                id: id
+            }, function(res) {
+                if (res.success) {
+                    tonesCache = null; // buộc reload từ server
+                    loadTones();
+                    if (window.AIF_Toast) AIF_Toast.show('Đã xóa phong cách.', 'success');
+                } else {
+                    alert(res.data || 'Lỗi xóa');
+                }
+            });
+        });
+    });
+</script>
+
 <script>
     // Inject metadata for real-time JS updates
     if (typeof aif_ajax !== 'undefined') {
@@ -1145,14 +1372,14 @@ $counts = $db->get_counts();
         aif_ajax.status_classes = <?php echo json_encode(AIF_Status::js_badge_classes()); ?>;
     }
 
-    jQuery(document).ready(function ($) {
-        $('#btn-import-gsheet-trigger').on('click', function (e) {
+    jQuery(document).ready(function($) {
+        $('#btn-import-gsheet-trigger').on('click', function(e) {
             e.preventDefault();
             $('#btn-import-gsheet').click();
         });
 
         // Auto-expand textarea
-        $(document).on('input', 'textarea.auto-expand', function () {
+        $(document).on('input', 'textarea.auto-expand', function() {
             this.style.height = 'auto';
             this.style.height = (this.scrollHeight) + 'px';
         });

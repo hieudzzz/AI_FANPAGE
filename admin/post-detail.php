@@ -509,11 +509,12 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($json_data) && isset($json
                                         <button type="button"
                                             class="aif-tone-btn <?php echo ($current_tone === $key) ? 'active' : ''; ?> <?php echo $is_custom ? 'aif-tone-custom' : ''; ?>"
                                             data-tone="<?php echo esc_attr($key); ?>"
-                                            data-desc="<?php echo esc_attr($info['desc'] ?? ''); ?>"
+                                            data-desc="<?php echo esc_attr($info['description'] ?? $info['desc'] ?? ''); ?>"
                                             data-custom="<?php echo $is_custom ? '1' : '0'; ?>"
+                                            data-id="<?php echo esc_attr($info['id'] ?? ''); ?>"
                                             data-label="<?php echo esc_attr($info['label']); ?>">
                                             <?php echo esc_html($info['label']); ?>
-                                            <?php if ($is_custom): ?><span class="aif-tone-custom-del" data-key="<?php echo esc_attr($key); ?>" title="Xóa phong cách này">×</span><?php endif; ?>
+                                            <?php if ($is_custom): ?><span class="aif-tone-custom-del" data-key="<?php echo esc_attr($key); ?>" data-id="<?php echo esc_attr($info['id'] ?? ''); ?>" title="Xóa phong cách này">×</span><?php endif; ?>
                                         </button>
                                         <?php endforeach; ?>
                                         <!-- Button thêm mới -->

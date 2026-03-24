@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Fired during plugin activation
  */
@@ -214,6 +215,10 @@ class AIF_Activator
 
         // Bảng settings riêng cho plugin (API keys, config...)
         AIF_Settings::create_table();
+
+        // Bảng tones (giọng văn AI)
+        AIF_Tones_DB::create_table();
+        AIF_Tones_DB::seed_defaults();
     }
 
     public static function migrate_data()
