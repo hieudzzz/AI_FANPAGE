@@ -609,3 +609,10 @@ input[type="datetime-local"].inline-edit-input {
 .aif-action-warn:hover {
     background: #ffedd5 !important;
 }
+
+/* ── Tones Modal Scroll Performance ── */
+#tones-list {
+    will-change: scroll-position;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}

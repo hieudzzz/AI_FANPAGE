@@ -530,7 +530,7 @@ $counts = $db->get_counts();
 </div>
 
 <!-- ===== MODAL: Phong cách viết ===== -->
-<div id="aif-tones-modal" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,0.55);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+<div id="aif-tones-modal" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,0.55);align-items:center;justify-content:center;">
     <div style="background:#fff;border-radius:16px;width:100%;max-width:780px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 25px 60px rgba(0,0,0,0.25);margin:20px;overflow:hidden;">
 
         <!-- Header -->
