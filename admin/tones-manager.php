@@ -16,7 +16,7 @@ $count = count($tones);
     <div class="aif-n8n-header" style="margin-bottom:24px;">
         <div class="aif-n8n-header-left">
             <div class="aif-n8n-header-icon" style="background:linear-gradient(135deg,#8b5cf6,#6366f1);">
-                <span class="dashicons dashicons-edit-page"></span>
+                <span class="dashicons dashicons-art"></span>
             </div>
             <div>
                 <h1 class="aif-n8n-title">Phong cách viết</h1>
@@ -112,7 +112,7 @@ $count = count($tones);
         <div style="padding:20px 24px;background:linear-gradient(135deg,#8b5cf6,#6366f1);position:relative;">
             <div style="display:flex;align-items:center;gap:12px;">
                 <div style="width:38px;height:38px;background:rgba(255,255,255,0.2);border-radius:10px;display:flex;align-items:center;justify-content:center;">
-                    <span class="dashicons dashicons-edit-page" style="color:#fff;font-size:18px;width:18px;height:18px;"></span>
+                    <span class="dashicons dashicons-art" style="color:#fff;font-size:18px;width:18px;height:18px;"></span>
                 </div>
                 <div>
                     <h3 id="tone-modal-title" style="margin:0;font-size:16px;font-weight:800;color:#fff;">Thêm phong cách mới</h3>

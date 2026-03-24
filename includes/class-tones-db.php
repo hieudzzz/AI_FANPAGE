@@ -90,12 +90,55 @@ class AIF_Tones_DB {
     }
 
     private function generate_key( $label ) {
-        // Bỏ emoji, lowercase, thay khoảng trắng bằng _
-        $key = preg_replace('/[^\x20-\x7E]/', '', $label); // strip non-ASCII (emoji)
+        // Chuyển tiếng Việt có dấu → không dấu, rồi slug hóa
+        $key = $this->vi_to_ascii( $label );
         $key = strtolower( trim($key) );
         $key = preg_replace('/[^a-z0-9]+/', '_', $key);
         $key = trim($key, '_') ?: ('tone_' . time());
         return substr('custom_' . $key, 0, 80);
+    }
+
+    private function vi_to_ascii( $str ) {
+        $map = [
+            // a
+            'à','á','ả','ã','ạ','ă','ắ','ằ','ẳ','ẵ','ặ','â','ấ','ầ','ẩ','ẫ','ậ',
+            'À','Á','Ả','Ã','Ạ','Ă','Ắ','Ằ','Ẳ','Ẵ','Ặ','Â','Ấ','Ầ','Ẩ','Ẫ','Ậ',
+            // d
+            'đ','Đ',
+            // e
+            'è','é','ẻ','ẽ','ẹ','ê','ế','ề','ể','ễ','ệ',
+            'È','É','Ẻ','Ẽ','Ẹ','Ê','Ế','Ề','Ể','Ễ','Ệ',
+            // i
+            'ì','í','ỉ','ĩ','ị',
+            'Ì','Í','Ỉ','Ĩ','Ị',
+            // o
+            'ò','ó','ỏ','õ','ọ','ô','ố','ồ','ổ','ỗ','ộ','ơ','ớ','ờ','ở','ỡ','ợ',
+            'Ò','Ó','Ỏ','Õ','Ọ','Ô','Ố','Ồ','Ổ','Ỗ','Ộ','Ơ','Ớ','Ờ','Ở','Ỡ','Ợ',
+            // u
+            'ù','ú','ủ','ũ','ụ','ư','ứ','ừ','ử','ữ','ự',
+            'Ù','Ú','Ủ','Ũ','Ụ','Ư','Ứ','Ừ','Ử','Ữ','Ự',
+            // y
+            'ỳ','ý','ỷ','ỹ','ỵ',
+            'Ỳ','Ý','Ỷ','Ỹ','Ỵ',
+        ];
+        $ascii = [
+            'a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a',
+            'A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A',
+            'd','D',
+            'e','e','e','e','e','e','e','e','e','e','e',
+            'E','E','E','E','E','E','E','E','E','E','E',
+            'i','i','i','i','i',
+            'I','I','I','I','I',
+            'o','o','o','o','o','o','o','o','o','o','o','o','o','o','o','o','o',
+            'O','O','O','O','O','O','O','O','O','O','O','O','O','O','O','O','O',
+            'u','u','u','u','u','u','u','u','u','u','u',
+            'U','U','U','U','U','U','U','U','U','U','U',
+            'y','y','y','y','y',
+            'Y','Y','Y','Y','Y',
+        ];
+        $str = str_replace($map, $ascii, $str);
+        // Xóa phần còn lại không phải ASCII (emoji, ký tự đặc biệt khác)
+        return preg_replace('/[^\x20-\x7E]/', '', $str);
     }
 
     private function ensure_unique_key( $key ) {
