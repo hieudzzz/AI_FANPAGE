@@ -371,8 +371,8 @@ if ($pages) {
                                     // Cột bài đã đăng
                                     echo '<td style="text-align:center;">
                                             ' . ($posted > 0
-                                                ? '<span class="aif-badge aif-badge-success">' . $posted . ' bài</span>'
-                                                : '<span class="aif-badge" style="background:#f1f5f9;color:#94a3b8;">Chưa có</span>') . '
+                                        ? '<span class="aif-badge aif-badge-success">' . $posted . ' bài</span>'
+                                        : '<span class="aif-badge" style="background:#f1f5f9;color:#94a3b8;">Chưa có</span>') . '
                                           </td>';
 
                                     // Cột thời hạn
@@ -479,7 +479,7 @@ if ($pages) {
 </div>
 
 <script>
-    jQuery(document).ready(function ($) {
+    jQuery(document).ready(function($) {
 
         // ── Helpers ─────────────────────────────────────────────────────────
         function openEditModal(btn) {
@@ -490,7 +490,9 @@ if ($pages) {
             $('#edit-fanpage-page-id-display').text($btn.data('pageid'));
             $('#edit-modal-subtitle').text('Đang sửa: ' + $btn.data('name'));
             $('#aif-edit-fanpage-modal').css('display', 'flex');
-            setTimeout(function() { $('#edit-fanpage-name').focus().select(); }, 100);
+            setTimeout(function() {
+                $('#edit-fanpage-name').focus().select();
+            }, 100);
         }
 
         function closeEditModal() {
@@ -498,18 +500,18 @@ if ($pages) {
         }
 
         // ── Edit Fanpage ─────────────────────────────────────────────────────
-        $(document).on('click', '.btn-edit-fanpage', function (e) {
+        $(document).on('click', '.btn-edit-fanpage', function(e) {
             e.preventDefault();
             openEditModal(this);
         });
 
         $('#edit-fanpage-modal-close, #edit-fanpage-cancel').on('click', closeEditModal);
-        $('#aif-edit-fanpage-modal').on('click', function (e) {
+        $('#aif-edit-fanpage-modal').on('click', function(e) {
             if (e.target === this) closeEditModal();
         });
 
-        $('#edit-fanpage-save').on('click', function () {
-            var id   = $('#edit-fanpage-id').val();
+        $('#edit-fanpage-save').on('click', function() {
+            var id = $('#edit-fanpage-id').val();
             var name = $('#edit-fanpage-name').val().trim();
             var appId = $('#edit-fanpage-appid').val().trim();
 
@@ -524,17 +526,19 @@ if ($pages) {
             $btn.html('<span class="dashicons dashicons-update" style="animation:rotation 1s linear infinite;font-size:15px;width:15px;height:15px;display:inline-block;"></span> Đang lưu...');
 
             $.post(aif_ajax.ajax_url, {
-                action:    'aif_edit_fanpage',
-                nonce:     aif_ajax.nonce,
-                id:        id,
+                action: 'aif_edit_fanpage',
+                nonce: aif_ajax.nonce,
+                id: id,
                 page_name: name,
-                app_id:    appId
-            }, function (res) {
+                app_id: appId
+            }, function(res) {
                 $btn.prop('disabled', false).html(origHtml);
                 if (res.success) {
                     if (window.AIF_Toast) AIF_Toast.show('Đã cập nhật Fanpage!', 'success');
                     closeEditModal();
-                    setTimeout(function () { location.reload(); }, 800);
+                    setTimeout(function() {
+                        location.reload();
+                    }, 800);
                 } else {
                     if (window.AIF_Toast) AIF_Toast.show('Lỗi: ' + res.data, 'error');
                 }
@@ -542,7 +546,7 @@ if ($pages) {
         });
 
         // ── Save Fanpage (new) ───────────────────────────────────────────────
-        $('#aif-fanpage-form').on('submit', function (e) {
+        $('#aif-fanpage-form').on('submit', function(e) {
             e.preventDefault();
             var formData = $(this).serialize();
             var $btn = $('#btn-save-fanpage');
@@ -551,27 +555,33 @@ if ($pages) {
             $.ajax({
                 url: aif_ajax.ajax_url,
                 type: 'POST',
-                data: { action: 'aif_save_fanpage', nonce: aif_ajax.nonce, data: formData },
-                success: function (response) {
+                data: {
+                    action: 'aif_save_fanpage',
+                    nonce: aif_ajax.nonce,
+                    data: formData
+                },
+                success: function(response) {
                     if (response.success) {
                         if (window.AIF_Toast) AIF_Toast.show('Kết nối thành công!', 'success');
                         else $('#fanpage-message').html('<div class="notice notice-success inline"><p>Kết nối thành công!</p></div>');
-                        setTimeout(function () { location.reload(); }, 1000);
+                        setTimeout(function() {
+                            location.reload();
+                        }, 1000);
                     } else {
                         if (window.AIF_Toast) AIF_Toast.show(response.data || 'Có lỗi xảy ra', 'error');
                         else $('#fanpage-message').html('<div class="notice notice-error inline"><p>' + (response.data || 'Có lỗi xảy ra') + '</p></div>');
-                        $btn.prop('disabled', false).css('opacity','1').html('<span class="dashicons dashicons-saved"></span> Kết Nối Ngay');
+                        $btn.prop('disabled', false).css('opacity', '1').html('<span class="dashicons dashicons-saved"></span> Kết Nối Ngay');
                     }
                 },
-                error: function () {
+                error: function() {
                     if (window.AIF_Toast) AIF_Toast.show('Lỗi kết nối server', 'error');
-                    $btn.prop('disabled', false).css('opacity','1').html('<span class="dashicons dashicons-saved"></span> Kết Nối Ngay');
+                    $btn.prop('disabled', false).css('opacity', '1').html('<span class="dashicons dashicons-saved"></span> Kết Nối Ngay');
                 }
             });
         });
 
         // ── Update Token ─────────────────────────────────────────────────────
-        $('.btn-update-token').on('click', function (e) {
+        $('.btn-update-token').on('click', function(e) {
             e.preventDefault();
             var id = $(this).data('id');
             var name = $(this).data('name');
@@ -597,18 +607,28 @@ if ($pages) {
             $btn.prop('disabled', true).css('opacity', '0.7').html('<span class="dashicons dashicons-update" style="animation: rotation 2s infinite linear;"></span>');
 
             $.ajax({
-                url: aif_ajax.ajax_url, type: 'POST',
-                data: { action: 'aif_update_fanpage_token', nonce: aif_ajax.nonce, id: id, access_token: newToken, app_id: appId, app_secret: appSecret },
-                success: function (res) {
+                url: aif_ajax.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'aif_update_fanpage_token',
+                    nonce: aif_ajax.nonce,
+                    id: id,
+                    access_token: newToken,
+                    app_id: appId,
+                    app_secret: appSecret
+                },
+                success: function(res) {
                     if (res.success) {
                         if (window.AIF_Toast) AIF_Toast.show('Cập nhật Token thành công!', 'success');
-                        setTimeout(function () { location.reload(); }, 1000);
+                        setTimeout(function() {
+                            location.reload();
+                        }, 1000);
                     } else {
                         if (window.AIF_Toast) AIF_Toast.show('Lỗi: ' + res.data, 'error');
                         $btn.prop('disabled', false).css('opacity', '1').html(originalHtml);
                     }
                 },
-                error: function () {
+                error: function() {
                     if (window.AIF_Toast) AIF_Toast.show('Lỗi kết nối server', 'error');
                     $btn.prop('disabled', false).css('opacity', '1').html(originalHtml);
                 }
@@ -616,12 +636,12 @@ if ($pages) {
         });
 
         // ── Delete Fanpage ───────────────────────────────────────────────────
-        $(document).on('click', '.btn-delete-fanpage', function (e) {
+        $(document).on('click', '.btn-delete-fanpage', function(e) {
             e.preventDefault();
             var $btn = $(this);
             var canDelete = $btn.data('can-delete') == '1';
-            var posted    = parseInt($btn.data('posted')) || 0;
-            var name      = $btn.data('name');
+            var posted = parseInt($btn.data('posted')) || 0;
+            var name = $btn.data('name');
 
             if (!canDelete) {
                 if (window.AIF_Toast) AIF_Toast.show('Không thể xóa "' + name + '": đã có ' + posted + ' bài đăng thành công trên Fanpage này.', 'error');
@@ -635,18 +655,25 @@ if ($pages) {
             $btn.prop('disabled', true).css('opacity', '0.7').html('<span class="dashicons dashicons-update" style="animation: rotation 2s infinite linear;"></span>');
 
             $.ajax({
-                url: aif_ajax.ajax_url, type: 'POST',
-                data: { action: 'aif_delete_fanpage', nonce: aif_ajax.nonce, id: id },
-                success: function (res) {
+                url: aif_ajax.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'aif_delete_fanpage',
+                    nonce: aif_ajax.nonce,
+                    id: id
+                },
+                success: function(res) {
                     if (res.success) {
                         if (window.AIF_Toast) AIF_Toast.show('Đã xóa Fanpage thành công!', 'success');
-                        setTimeout(function () { location.reload(); }, 800);
+                        setTimeout(function() {
+                            location.reload();
+                        }, 800);
                     } else {
                         if (window.AIF_Toast) AIF_Toast.show('Lỗi: ' + res.data, 'error');
                         $btn.prop('disabled', false).css('opacity', '1').html(originalHtml);
                     }
                 },
-                error: function () {
+                error: function() {
                     if (window.AIF_Toast) AIF_Toast.show('Lỗi kết nối server', 'error');
                     $btn.prop('disabled', false).css('opacity', '1').html(originalHtml);
                 }

@@ -707,18 +707,18 @@ class AIF_Facebook_Manager
                 curl_setopt($ch, CURLOPT_URL, $url_api);
                 curl_setopt($ch, CURLOPT_POST, 1);
                 curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 
-            $response = curl_exec($ch);
-            curl_close($ch);
+                $response = curl_exec($ch);
+                curl_close($ch);
 
-            $res_data = json_decode($response, true);
-            if (isset($res_data['id'])) {
-                $attached_media[] = ['media_fbid' => $res_data['id']];
-            } else {
-                $errors[] = isset($res_data['error']['message']) ? $res_data['error']['message'] : 'Upload failed (binary)';
-            }
+                $res_data = json_decode($response, true);
+                if (isset($res_data['id'])) {
+                    $attached_media[] = ['media_fbid' => $res_data['id']];
+                } else {
+                    $errors[] = isset($res_data['error']['message']) ? $res_data['error']['message'] : 'Upload failed (binary)';
+                }
             } elseif ($image_url) {
                 // URL upload (WP Media or remote)
                 $url_api = "https://graph.facebook.com/v19.0/{$fb_page_id}/photos";
