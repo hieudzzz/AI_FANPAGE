@@ -499,11 +499,18 @@ jQuery(document).ready(function ($) {
     // ── Tooltip hover phong cách viết ─────────────────────────
     const $toneTooltip = $('#aif-tone-tooltip');
     $(document).on('mouseenter', '.aif-tone-btn:not(.aif-tone-add-btn)', function () {
-        const desc  = $(this).data('desc') || '';
+        const desc  = $(this).data('desc')  || '';
+        const style = $(this).data('style') || '';
         const label = $(this).data('label') || $(this).text().trim();
-        if (!desc) return;
+        if (!desc && !style) return;
         $('#aif-tone-tooltip-label').text(label);
         $('#aif-tone-tooltip-desc').text(desc);
+        if (style) {
+            $('#aif-tone-tooltip-style').text(style);
+            $('#aif-tone-tooltip-style-wrap').show();
+        } else {
+            $('#aif-tone-tooltip-style-wrap').hide();
+        }
         $toneTooltip.show();
         _positionToneTooltip($(this));
     }).on('mousemove', '.aif-tone-btn:not(.aif-tone-add-btn)', function () {

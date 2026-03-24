@@ -510,6 +510,7 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($json_data) && isset($json
                                             class="aif-tone-btn <?php echo ($current_tone === $key) ? 'active' : ''; ?> <?php echo $is_custom ? 'aif-tone-custom' : ''; ?>"
                                             data-tone="<?php echo esc_attr($key); ?>"
                                             data-desc="<?php echo esc_attr($info['description'] ?? $info['desc'] ?? ''); ?>"
+                                            data-style="<?php echo esc_attr($info['style'] ?? ''); ?>"
                                             data-custom="<?php echo $is_custom ? '1' : '0'; ?>"
                                             data-id="<?php echo esc_attr($info['id'] ?? ''); ?>"
                                             data-label="<?php echo esc_attr($info['label']); ?>">
@@ -526,9 +527,13 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($json_data) && isset($json
                                 </div>
 
                                 <!-- Tooltip phong cách viết (dùng chung) -->
-                                <div id="aif-tone-tooltip" style="display:none;position:fixed;z-index:99999;max-width:240px;background:#1e293b;color:#f1f5f9;padding:10px 14px;border-radius:10px;font-size:12px;line-height:1.6;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,0.25);">
-                                    <div id="aif-tone-tooltip-label" style="font-weight:700;font-size:13px;margin-bottom:4px;color:#fff;"></div>
-                                    <div id="aif-tone-tooltip-desc"></div>
+                                <div id="aif-tone-tooltip" style="display:none;position:fixed;z-index:99999;max-width:260px;background:#1e293b;color:#f1f5f9;padding:12px 14px;border-radius:12px;font-size:12px;line-height:1.6;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,0.3);">
+                                    <div id="aif-tone-tooltip-label" style="font-weight:700;font-size:13px;margin-bottom:6px;color:#fff;"></div>
+                                    <div id="aif-tone-tooltip-desc" style="color:#94a3b8;margin-bottom:0;"></div>
+                                    <div id="aif-tone-tooltip-style-wrap" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.1);">
+                                        <div style="font-size:10px;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px;">🤖 Hướng dẫn AI</div>
+                                        <div id="aif-tone-tooltip-style" style="color:#cbd5e1;font-size:11.5px;line-height:1.6;"></div>
+                                    </div>
                                     <div style="position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);width:12px;height:12px;background:#1e293b;clip-path:polygon(0 0,100% 0,50% 100%);"></div>
                                 </div>
 
