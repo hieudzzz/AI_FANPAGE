@@ -74,6 +74,7 @@ class AI_Fanpage
         add_action('wp_ajax_aif_bulk_process_item', [$this, 'handle_bulk_process_item']);
         add_action('wp_ajax_aif_get_post_details', [$this, 'handle_get_post_details']);
         add_action('wp_ajax_aif_save_fanpage', [$this, 'handle_save_fanpage']);
+        add_action('wp_ajax_aif_edit_fanpage', [$this, 'handle_edit_fanpage']);
         add_action('wp_ajax_aif_delete_fanpage', [$this, 'handle_delete_fanpage']);
         add_action('wp_ajax_aif_add_to_queue', [$this, 'handle_add_to_queue']);
         add_action('wp_ajax_aif_force_run_cron', [$this, 'handle_force_run_cron']);
@@ -813,6 +814,31 @@ class AI_Fanpage
             wp_send_json_success('Saved successfully');
         } else {
             wp_send_json_error(isset($result['message']) ? $result['message'] : 'Failed to save to database');
+        }
+    }
+
+    public function handle_edit_fanpage()
+    {
+        check_ajax_referer('aif_nonce', 'nonce');
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Unauthorized');
+        }
+
+        $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+        if (!$id) {
+            wp_send_json_error('Invalid ID');
+        }
+
+        $manager = new AIF_Facebook_Manager();
+        $result = $manager->update_page_info($id, [
+            'page_name' => isset($_POST['page_name']) ? wp_unslash($_POST['page_name']) : '',
+            'app_id'    => isset($_POST['app_id'])    ? wp_unslash($_POST['app_id'])    : '',
+        ]);
+
+        if ($result['success']) {
+            wp_send_json_success('Cập nhật thành công');
+        } else {
+            wp_send_json_error($result['message']);
         }
     }
 

@@ -171,6 +171,51 @@ class AIF_Facebook_Manager
         return $count > 0;
     }
 
+    public function has_successful_posts($id)
+    {
+        global $wpdb;
+        $table_results = $wpdb->prefix . 'aif_post_results';
+        $count = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM $table_results WHERE platform = 'facebook' AND target_id = %d",
+            $id
+        ));
+        return intval($count) > 0;
+    }
+
+    public function get_posted_count($id)
+    {
+        global $wpdb;
+        $table_results = $wpdb->prefix . 'aif_post_results';
+        return intval($wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM $table_results WHERE platform = 'facebook' AND target_id = %d",
+            $id
+        )));
+    }
+
+    public function update_page_info($id, $data)
+    {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'aif_facebook_pages';
+
+        $update = [];
+        if (!empty($data['page_name'])) {
+            $update['page_name'] = sanitize_text_field($data['page_name']);
+        }
+        if (isset($data['app_id'])) {
+            $update['app_id'] = sanitize_text_field($data['app_id']);
+        }
+
+        if (empty($update)) {
+            return ['success' => false, 'message' => 'Không có dữ liệu để cập nhật.'];
+        }
+
+        $result = $wpdb->update($table_name, $update, ['id' => $id]);
+        if ($result !== false) {
+            return ['success' => true];
+        }
+        return ['success' => false, 'message' => 'Lỗi Database khi cập nhật.'];
+    }
+
     public function delete_page($id)
     {
         global $wpdb;
@@ -178,6 +223,10 @@ class AIF_Facebook_Manager
 
         if ($this->has_pending_items($id)) {
             return ['success' => false, 'message' => 'Không thể xóa: Còn bài viết đang chờ đăng trên Fanpage này.'];
+        }
+
+        if ($this->has_successful_posts($id)) {
+            return ['success' => false, 'message' => 'Không thể xóa: Fanpage này đã có bài đăng thành công.'];
         }
 
         $result = $wpdb->delete($table_name, ['id' => $id]);

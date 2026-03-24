@@ -3,6 +3,13 @@ if (!defined('ABSPATH'))
     exit;
 $manager = new AIF_Facebook_Manager();
 $pages = $manager->get_pages();
+// Tính số bài đã đăng thành công cho mỗi page
+$posted_counts = [];
+if ($pages) {
+    foreach ($pages as $page) {
+        $posted_counts[$page->id] = $manager->get_posted_count($page->id);
+    }
+}
 ?>
 <style>
     :root {
@@ -312,8 +319,9 @@ $pages = $manager->get_pages();
                         <thead>
                             <tr>
                                 <th style="width: 40%;">Fanpage</th>
-                                <th style="width: 25%;">Thời Hạn</th>
-                                <th style="width: 35%; text-align: right;">Hành Động</th>
+                                <th style="width: 15%; text-align:center;">Bài đã đăng</th>
+                                <th style="width: 20%;">Thời Hạn</th>
+                                <th style="width: 25%; text-align: right;">Hành Động</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -336,44 +344,75 @@ $pages = $manager->get_pages();
                                         }
                                     }
 
-                                    $has_app = !empty($page->app_id);
-                                    $app_badge = $has_app ? '<span class="aif-badge aif-badge-success" style="padding: 2px 6px; font-size: 9px; margin-top: 5px;">APP OK</span>' : '<span class="aif-badge aif-badge-danger" style="padding: 2px 6px; font-size: 9px; margin-top: 5px;">NO APP</span>';
+                                    $has_app    = !empty($page->app_id);
+                                    $app_badge  = $has_app
+                                        ? '<span class="aif-badge aif-badge-success" style="padding:2px 6px;font-size:9px;margin-top:5px;">APP OK</span>'
+                                        : '<span class="aif-badge aif-badge-danger"  style="padding:2px 6px;font-size:9px;margin-top:5px;">NO APP</span>';
+
+                                    $posted = $posted_counts[$page->id] ?? 0;
+                                    $can_delete = ($posted === 0);
 
                                     echo '<tr>';
+
+                                    // Cột Fanpage
                                     echo '<td>
-                                            <div style="display: flex; align-items: center; gap: 12px;">
-                                                <div style="width: 40px; height: 40px; border-radius: 50%; background: #f1f5f9; display: flex; align-items: center; justify-content: center; color: var(--aif-primary);">
-                                                    <span class="dashicons dashicons-facebook" style="font-size: 20px;"></span>
+                                            <div style="display:flex;align-items:center;gap:12px;">
+                                                <div style="width:40px;height:40px;border-radius:50%;background:#f1f5f9;display:flex;align-items:center;justify-content:center;color:var(--aif-primary);">
+                                                    <span class="dashicons dashicons-facebook" style="font-size:20px;"></span>
                                                 </div>
                                                 <div>
-                                                    <div style="font-weight: 700; color: var(--aif-text-main);">' . esc_html($page->page_name) . '</div>
-                                                    <div style="font-size: 11px; color: var(--aif-text-muted); margin-top: 2px;">ID: ' . esc_html($page->page_id) . '</div>
+                                                    <div style="font-weight:700;color:var(--aif-text-main);">' . esc_html($page->page_name) . '</div>
+                                                    <div style="font-size:11px;color:var(--aif-text-muted);margin-top:2px;">ID: ' . esc_html($page->page_id) . '</div>
                                                     ' . $app_badge . '
                                                 </div>
                                             </div>
                                           </td>';
+
+                                    // Cột bài đã đăng
+                                    echo '<td style="text-align:center;">
+                                            ' . ($posted > 0
+                                                ? '<span class="aif-badge aif-badge-success">' . $posted . ' bài</span>'
+                                                : '<span class="aif-badge" style="background:#f1f5f9;color:#94a3b8;">Chưa có</span>') . '
+                                          </td>';
+
+                                    // Cột thời hạn
                                     echo '<td>' . $expiry_text . '</td>';
-                                    echo '<td style="text-align: right;">
-                                            <div style="display: flex; justify-content: flex-end; gap: 8px;">
-                                                <button class="aif-btn aif-btn-outline btn-update-token" 
-                                                        data-id="' . $page->id . '" 
-                                                        data-name="' . esc_attr($page->page_name) . '" 
+
+                                    // Cột hành động
+                                    echo '<td style="text-align:right;">
+                                            <div style="display:flex;justify-content:flex-end;gap:8px;">
+                                                <button class="aif-btn aif-btn-outline btn-edit-fanpage"
+                                                        data-id="'       . $page->id . '"
+                                                        data-name="'     . esc_attr($page->page_name) . '"
+                                                        data-appid="'    . esc_attr($page->app_id ?? '') . '"
+                                                        data-pageid="'   . esc_attr($page->page_id) . '"
+                                                        title="Chỉnh sửa">
+                                                    <span class="dashicons dashicons-edit" style="font-size:16px;"></span>
+                                                </button>
+                                                <button class="aif-btn aif-btn-outline btn-update-token"
+                                                        data-id="'      . $page->id . '"
+                                                        data-name="'    . esc_attr($page->page_name) . '"
                                                         data-has-app="' . ($has_app ? '1' : '0') . '"
                                                         title="Cập nhật Token">
-                                                    <span class="dashicons dashicons-update" style="font-size: 16px;"></span>
+                                                    <span class="dashicons dashicons-update" style="font-size:16px;"></span>
                                                 </button>
-                                                <button class="aif-btn aif-btn-outline aif-btn-danger btn-delete-fanpage" 
-                                                        data-id="' . $page->id . '" 
-                                                        title="Xóa kết nối">
-                                                    <span class="dashicons dashicons-trash" style="font-size: 16px;"></span>
+                                                <button class="aif-btn aif-btn-outline aif-btn-danger btn-delete-fanpage"
+                                                        data-id="'       . $page->id . '"
+                                                        data-name="'     . esc_attr($page->page_name) . '"
+                                                        data-posted="'   . $posted . '"
+                                                        data-can-delete="' . ($can_delete ? '1' : '0') . '"
+                                                        title="' . ($can_delete ? 'Xóa kết nối' : 'Không thể xóa: đã có bài đăng') . '"
+                                                        ' . (!$can_delete ? 'style="opacity:0.4;cursor:not-allowed;"' : '') . '>
+                                                    <span class="dashicons dashicons-trash" style="font-size:16px;"></span>
                                                 </button>
                                             </div>
                                           </td>';
+
                                     echo '</tr>';
                                 }
                             } else {
-                                echo '<tr><td colspan="3" style="text-align: center; padding: 40px; color: var(--aif-text-muted);">
-                                        <span class="dashicons dashicons-database" style="font-size: 32px; width: 32px; height: 32px; margin-bottom: 10px; display: block; margin-left: auto; margin-right: auto;"></span>
+                                echo '<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--aif-text-muted);">
+                                        <span class="dashicons dashicons-database" style="font-size:32px;width:32px;height:32px;margin-bottom:10px;display:block;margin-left:auto;margin-right:auto;"></span>
                                         Chưa có Fanpage nào được kết nối.
                                       </td></tr>';
                             }
@@ -386,9 +425,123 @@ $pages = $manager->get_pages();
     </div>
 </div>
 
+<!-- ===== MODAL: Edit Fanpage ===== -->
+<div id="aif-edit-fanpage-modal" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,0.5);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:16px;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(0,0,0,0.2);margin:20px;overflow:hidden;">
+        <!-- Header -->
+        <div style="padding:20px 24px;background:linear-gradient(135deg,#3b82f6,#6366f1);position:relative;">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <div style="width:38px;height:38px;background:rgba(255,255,255,0.2);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+                    <span class="dashicons dashicons-edit" style="color:#fff;font-size:18px;width:18px;height:18px;"></span>
+                </div>
+                <div>
+                    <h3 style="margin:0;font-size:16px;font-weight:800;color:#fff;">Chỉnh sửa Fanpage</h3>
+                    <p style="margin:2px 0 0;font-size:12px;color:rgba(255,255,255,0.75);" id="edit-modal-subtitle">Cập nhật tên hiển thị và App ID</p>
+                </div>
+            </div>
+            <button type="button" id="edit-fanpage-modal-close"
+                style="position:absolute;top:14px;right:16px;background:rgba(255,255,255,0.2);border:none;color:#fff;width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;line-height:1;">&times;</button>
+        </div>
+        <!-- Body -->
+        <div style="padding:24px;">
+            <input type="hidden" id="edit-fanpage-id">
+
+            <div style="margin-bottom:8px;padding:10px 14px;background:#f0f9ff;border-radius:8px;border:1px solid #bae6fd;display:flex;align-items:center;gap:8px;">
+                <span class="dashicons dashicons-lock" style="color:#0284c7;font-size:15px;width:15px;height:15px;flex-shrink:0;"></span>
+                <span style="font-size:12px;color:#0369a1;">Page ID: <b id="edit-fanpage-page-id-display"></b> — không thể thay đổi</span>
+            </div>
+
+            <div style="margin-bottom:18px;margin-top:18px;">
+                <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">
+                    Tên Fanpage <span style="color:#ef4444;">*</span>
+                </label>
+                <input type="text" id="edit-fanpage-name" class="aif-input" placeholder="Tên hiển thị của Fanpage">
+            </div>
+
+            <div style="margin-bottom:8px;">
+                <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">
+                    App ID
+                    <span style="font-weight:400;color:#94a3b8;font-size:11px;">(để trống nếu không đổi)</span>
+                </label>
+                <input type="text" id="edit-fanpage-appid" class="aif-input" placeholder="App ID Facebook">
+                <p class="aif-help-text">Dùng để gia hạn Token tự động. Nếu sửa App ID thì cần cập nhật lại Token.</p>
+            </div>
+        </div>
+        <!-- Footer -->
+        <div style="padding:16px 24px;border-top:1px solid #f1f5f9;display:flex;justify-content:flex-end;gap:10px;background:#fafafa;">
+            <button type="button" id="edit-fanpage-cancel" class="aif-btn aif-btn-outline">Hủy</button>
+            <button type="button" id="edit-fanpage-save" class="aif-btn aif-btn-primary">
+                <span class="dashicons dashicons-saved" style="font-size:15px;width:15px;height:15px;"></span>
+                Lưu thay đổi
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
     jQuery(document).ready(function ($) {
-        // Save Fanpage
+
+        // ── Helpers ─────────────────────────────────────────────────────────
+        function openEditModal(btn) {
+            var $btn = $(btn);
+            $('#edit-fanpage-id').val($btn.data('id'));
+            $('#edit-fanpage-name').val($btn.data('name'));
+            $('#edit-fanpage-appid').val($btn.data('appid') || '');
+            $('#edit-fanpage-page-id-display').text($btn.data('pageid'));
+            $('#edit-modal-subtitle').text('Đang sửa: ' + $btn.data('name'));
+            $('#aif-edit-fanpage-modal').css('display', 'flex');
+            setTimeout(function() { $('#edit-fanpage-name').focus().select(); }, 100);
+        }
+
+        function closeEditModal() {
+            $('#aif-edit-fanpage-modal').css('display', 'none');
+        }
+
+        // ── Edit Fanpage ─────────────────────────────────────────────────────
+        $(document).on('click', '.btn-edit-fanpage', function (e) {
+            e.preventDefault();
+            openEditModal(this);
+        });
+
+        $('#edit-fanpage-modal-close, #edit-fanpage-cancel').on('click', closeEditModal);
+        $('#aif-edit-fanpage-modal').on('click', function (e) {
+            if (e.target === this) closeEditModal();
+        });
+
+        $('#edit-fanpage-save').on('click', function () {
+            var id   = $('#edit-fanpage-id').val();
+            var name = $('#edit-fanpage-name').val().trim();
+            var appId = $('#edit-fanpage-appid').val().trim();
+
+            if (!name) {
+                if (window.AIF_Toast) AIF_Toast.show('Vui lòng nhập tên Fanpage.', 'error');
+                $('#edit-fanpage-name').focus();
+                return;
+            }
+
+            var $btn = $(this).prop('disabled', true);
+            var origHtml = $btn.html();
+            $btn.html('<span class="dashicons dashicons-update" style="animation:rotation 1s linear infinite;font-size:15px;width:15px;height:15px;display:inline-block;"></span> Đang lưu...');
+
+            $.post(aif_ajax.ajax_url, {
+                action:    'aif_edit_fanpage',
+                nonce:     aif_ajax.nonce,
+                id:        id,
+                page_name: name,
+                app_id:    appId
+            }, function (res) {
+                $btn.prop('disabled', false).html(origHtml);
+                if (res.success) {
+                    if (window.AIF_Toast) AIF_Toast.show('Đã cập nhật Fanpage!', 'success');
+                    closeEditModal();
+                    setTimeout(function () { location.reload(); }, 800);
+                } else {
+                    if (window.AIF_Toast) AIF_Toast.show('Lỗi: ' + res.data, 'error');
+                }
+            });
+        });
+
+        // ── Save Fanpage (new) ───────────────────────────────────────────────
         $('#aif-fanpage-form').on('submit', function (e) {
             e.preventDefault();
             var formData = $(this).serialize();
@@ -398,34 +551,26 @@ $pages = $manager->get_pages();
             $.ajax({
                 url: aif_ajax.ajax_url,
                 type: 'POST',
-                data: {
-                    action: 'aif_save_fanpage',
-                    nonce: aif_ajax.nonce,
-                    data: formData
-                },
+                data: { action: 'aif_save_fanpage', nonce: aif_ajax.nonce, data: formData },
                 success: function (response) {
                     if (response.success) {
                         if (window.AIF_Toast) AIF_Toast.show('Kết nối thành công!', 'success');
                         else $('#fanpage-message').html('<div class="notice notice-success inline"><p>Kết nối thành công!</p></div>');
-
-                        setTimeout(function () {
-                            location.reload();
-                        }, 1000);
+                        setTimeout(function () { location.reload(); }, 1000);
                     } else {
                         if (window.AIF_Toast) AIF_Toast.show(response.data || 'Có lỗi xảy ra', 'error');
                         else $('#fanpage-message').html('<div class="notice notice-error inline"><p>' + (response.data || 'Có lỗi xảy ra') + '</p></div>');
-                        $btn.prop('disabled', false).text('Kết Nối Fanpage');
+                        $btn.prop('disabled', false).css('opacity','1').html('<span class="dashicons dashicons-saved"></span> Kết Nối Ngay');
                     }
                 },
                 error: function () {
                     if (window.AIF_Toast) AIF_Toast.show('Lỗi kết nối server', 'error');
-                    else $('#fanpage-message').html('<div class="notice notice-error inline"><p>Lỗi kết nối server</p></div>');
-                    $btn.prop('disabled', false).text('Kết Nối Fanpage');
+                    $btn.prop('disabled', false).css('opacity','1').html('<span class="dashicons dashicons-saved"></span> Kết Nối Ngay');
                 }
             });
         });
 
-        // Update Token
+        // ── Update Token ─────────────────────────────────────────────────────
         $('.btn-update-token').on('click', function (e) {
             e.preventDefault();
             var id = $(this).data('id');
@@ -441,11 +586,9 @@ $pages = $manager->get_pages();
             if (!hasApp) {
                 appId = prompt('2. Fanpage này chưa lưu App ID. Nhập App ID:');
                 if (!appId) return;
-
                 appSecret = prompt('3. Nhập App Secret:');
                 if (!appSecret) return;
             } else {
-                // Info for user
                 if (!confirm('Hệ thống sẽ sử dụng App ID/Secret đã lưu để đổi Token dài hạn. Tiếp tục?')) return;
             }
 
@@ -454,71 +597,61 @@ $pages = $manager->get_pages();
             $btn.prop('disabled', true).css('opacity', '0.7').html('<span class="dashicons dashicons-update" style="animation: rotation 2s infinite linear;"></span>');
 
             $.ajax({
-                url: aif_ajax.ajax_url,
-                type: 'POST',
-                data: {
-                    action: 'aif_update_fanpage_token',
-                    nonce: aif_ajax.nonce,
-                    id: id,
-                    access_token: newToken,
-                    app_id: appId,
-                    app_secret: appSecret
-                },
+                url: aif_ajax.ajax_url, type: 'POST',
+                data: { action: 'aif_update_fanpage_token', nonce: aif_ajax.nonce, id: id, access_token: newToken, app_id: appId, app_secret: appSecret },
                 success: function (res) {
                     if (res.success) {
                         if (window.AIF_Toast) AIF_Toast.show('Cập nhật Token thành công!', 'success');
-                        else alert('Cập nhật Token thành công!');
                         setTimeout(function () { location.reload(); }, 1000);
                     } else {
                         if (window.AIF_Toast) AIF_Toast.show('Lỗi: ' + res.data, 'error');
-                        else alert('Lỗi: ' + res.data);
                         $btn.prop('disabled', false).css('opacity', '1').html(originalHtml);
                     }
                 },
                 error: function () {
                     if (window.AIF_Toast) AIF_Toast.show('Lỗi kết nối server', 'error');
-                    else alert('Lỗi kết nối server');
                     $btn.prop('disabled', false).css('opacity', '1').html(originalHtml);
                 }
             });
         });
 
-        // Delete Fanpage
-        $('.btn-delete-fanpage').on('click', function (e) {
+        // ── Delete Fanpage ───────────────────────────────────────────────────
+        $(document).on('click', '.btn-delete-fanpage', function (e) {
             e.preventDefault();
-            var id = $(this).data('id');
-            if (!confirm('Bạn có chắc chắn muốn xóa kết nối Fanpage này không?')) return;
-
             var $btn = $(this);
+            var canDelete = $btn.data('can-delete') == '1';
+            var posted    = parseInt($btn.data('posted')) || 0;
+            var name      = $btn.data('name');
+
+            if (!canDelete) {
+                if (window.AIF_Toast) AIF_Toast.show('Không thể xóa "' + name + '": đã có ' + posted + ' bài đăng thành công trên Fanpage này.', 'error');
+                return;
+            }
+
+            if (!confirm('Xóa kết nối Fanpage "' + name + '"?\nFanpage này chưa có bài nào được đăng.')) return;
+
+            var id = $btn.data('id');
             var originalHtml = $btn.html();
             $btn.prop('disabled', true).css('opacity', '0.7').html('<span class="dashicons dashicons-update" style="animation: rotation 2s infinite linear;"></span>');
 
             $.ajax({
-                url: aif_ajax.ajax_url,
-                type: 'POST',
-                data: {
-                    action: 'aif_delete_fanpage',
-                    nonce: aif_ajax.nonce,
-                    id: id
-                },
+                url: aif_ajax.ajax_url, type: 'POST',
+                data: { action: 'aif_delete_fanpage', nonce: aif_ajax.nonce, id: id },
                 success: function (res) {
                     if (res.success) {
                         if (window.AIF_Toast) AIF_Toast.show('Đã xóa Fanpage thành công!', 'success');
-                        else alert('Đã xóa Fanpage thành công!');
-
-                        setTimeout(function () { location.reload(); }, 1000);
+                        setTimeout(function () { location.reload(); }, 800);
                     } else {
                         if (window.AIF_Toast) AIF_Toast.show('Lỗi: ' + res.data, 'error');
-                        else alert('Lỗi: ' + res.data);
                         $btn.prop('disabled', false).css('opacity', '1').html(originalHtml);
                     }
                 },
                 error: function () {
                     if (window.AIF_Toast) AIF_Toast.show('Lỗi kết nối server', 'error');
-                    else alert('Lỗi kết nối server');
                     $btn.prop('disabled', false).css('opacity', '1').html(originalHtml);
                 }
             });
         });
+
     });
 </script>
