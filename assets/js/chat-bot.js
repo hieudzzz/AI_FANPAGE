@@ -390,55 +390,123 @@ jQuery(document).ready(function ($) {
             productsList = res.data;
             $('#kpi-badge-products').text(productsList.length);
 
-            if (currentTab === 'products') {
-                const active = productsList.filter(p => p.status === 'active').length;
-                const inactive = productsList.length - active;
-                $('#aif-kpi-row').html(
-                    kpiCard('📦', '#eef2ff', 'Tổng sản phẩm', productsList.length) +
-                    kpiCard('✅', '#ecfdf5', 'Đang kinh doanh', active) +
-                    kpiCard('⏸️', '#fef2f2', 'Ngừng bán', inactive)
-                );
-            }
+            // Populate category filter (dynamic)
+            const $catGroup = $('#aif-filter-prod-category');
+            const activeCat = $catGroup.find('.active').data('cat') || '';
+            const cats = [...new Set(productsList.map(p => p.category).filter(Boolean))].sort();
+            let catHtml = `<button class="aif-filter-btn ${activeCat === '' ? 'active' : ''}" data-cat="">Mọi danh mục</button>`;
+            cats.forEach(cat => {
+                catHtml += `<button class="aif-filter-btn ${activeCat === cat ? 'active' : ''}" data-cat="${esc(cat)}" data-name="${esc(cat)}">${esc(cat)}</button>`;
+            });
+            $catGroup.html(catHtml);
 
-            let html = '';
-            if (productsList.length === 0) {
-                html = emptyState('cart', 'Chưa có sản phẩm', 'Thêm sản phẩm để AI tư vấn khách hàng chính xác hơn.');
-            } else {
-                productsList.forEach(p => {
-                    const isActive = p.status === 'active';
-                    html += `<tr>
-                        <td style="font-weight:700;color:#6366f1;">#${p.id}</td>
-                        <td style="text-align:center;">
-                            <div style="font-weight:700;color:#1e293b;font-size:14px;">${esc(p.product_name)}</div>
-                            ${p.description ? `<div style="font-size:12px;color:#94a3b8;margin-top:2px;">${truncate(p.description, 45)}</div>` : ''}
-                        </td>
-                        <td><span class="aif-badge aif-badge-indigo">${esc(p.category) || '---'}</span></td>
-                        <td><code>${esc(p.sku) || '---'}</code></td>
-                        <td style="font-weight:700;color:#059669;">${p.price || '0'}</td>
-                        <td style="text-align:center;">
-                            <span class="aif-badge ${isActive ? 'aif-badge-success' : 'aif-badge-danger'}">
-                                ${isActive ? '● Đang bán' : '○ Ngừng'}
-                            </span>
-                        </td>
-                        <td style="text-align:right;white-space:nowrap;">
-                            <button class="button button-small btn-edit-prod" data-id="${p.id}" style="border-radius:6px;border-color:var(--aif-border-light);color:var(--aif-primary);padding:4px 10px;" title="Sửa">
-                                <span class="dashicons dashicons-edit" style="font-size:14px;margin-top:3px;"></span>
-                            </button>
-                            <button class="button button-small btn-toggle-prod" data-id="${p.id}" data-status="${p.status}"
-                                style="border-radius:6px;border-color:${isActive ? '#dcfce7' : '#fef3c7'};color:${isActive ? '#16a34a' : '#d97706'};padding:4px 10px;"
-                                title="${isActive ? 'Đang bán — nhấn để ngừng' : 'Đang ngừng — nhấn để kích hoạt'}">
-                                <span class="dashicons ${isActive ? 'dashicons-visibility' : 'dashicons-hidden'}" style="font-size:14px;margin-top:3px;"></span>
-                            </button>
-                            <button class="button button-small btn-del-prod" data-id="${p.id}" style="border-radius:6px;border-color:#fee2e2;color:#ef4444;padding:4px 10px;" title="Xóa hẳn">
-                                <span class="dashicons dashicons-trash" style="font-size:14px;margin-top:3px;"></span>
-                            </button>
-                        </td>
-                    </tr>`;
-                });
-            }
-            $('#aif-n8n-products-body').html(html);
+            renderProducts();
         });
     }
+
+    // Render bảng sản phẩm theo filter hiện tại (client-side)
+    function renderProducts() {
+        if (!productsList) return;
+
+        const search  = ($('#aif-product-search').val() || '').toLowerCase().trim();
+        const status  = $('#aif-filter-prod-status .active').data('status') || '';
+        const cat     = $('#aif-filter-prod-category .active').data('cat') || '';
+
+        let filtered = productsList;
+        if (status)  filtered = filtered.filter(p => p.status === status);
+        if (cat)     filtered = filtered.filter(p => (p.category || '') === cat);
+        if (search)  filtered = filtered.filter(p =>
+            (p.product_name || '').toLowerCase().includes(search) ||
+            (p.sku || '').toLowerCase().includes(search)
+        );
+
+        // Cập nhật count trên status buttons
+        $('#aif-filter-prod-status .aif-filter-btn').each(function() {
+            const s   = $(this).data('status') || '';
+            const cnt = s ? productsList.filter(p => p.status === s).length : productsList.length;
+            $(this).text((s === '' ? 'Tất cả' : s === 'active' ? 'Đang bán' : 'Ngừng bán') + ' ' + cnt);
+        });
+
+        if (currentTab === 'products') {
+            const active = productsList.filter(p => p.status === 'active').length;
+            const inactive = productsList.length - active;
+            $('#aif-kpi-row').html(
+                kpiCard('📦', '#eef2ff', 'Tổng sản phẩm', productsList.length) +
+                kpiCard('✅', '#ecfdf5', 'Đang kinh doanh', active) +
+                kpiCard('⏸️', '#fef2f2', 'Ngừng bán', inactive)
+            );
+        }
+
+        let html = '';
+        if (filtered.length === 0) {
+            html = `<tr><td colspan="7" style="text-align:center;padding:40px;color:#94a3b8;font-style:italic;">
+                <span class="dashicons dashicons-search" style="font-size:24px;display:block;margin:0 auto 8px;opacity:0.3;"></span>
+                Không tìm thấy sản phẩm phù hợp.
+            </td></tr>`;
+        } else {
+            filtered.forEach(p => {
+                const isActive = p.status === 'active';
+                html += `<tr>
+                    <td style="font-weight:700;color:#6366f1;">#${p.id}</td>
+                    <td style="text-align:center;">
+                        <div style="font-weight:700;color:#1e293b;font-size:14px;">${esc(p.product_name)}</div>
+                        ${p.description ? `<div style="font-size:12px;color:#94a3b8;margin-top:2px;">${truncate(p.description, 45)}</div>` : ''}
+                    </td>
+                    <td><span class="aif-badge aif-badge-indigo">${esc(p.category) || '---'}</span></td>
+                    <td><code>${esc(p.sku) || '---'}</code></td>
+                    <td style="font-weight:700;color:#059669;">${p.price || '0'}</td>
+                    <td style="text-align:center;">
+                        <span class="aif-badge ${isActive ? 'aif-badge-success' : 'aif-badge-danger'}">
+                            ${isActive ? '● Đang bán' : '○ Ngừng'}
+                        </span>
+                    </td>
+                    <td style="text-align:right;white-space:nowrap;">
+                        <button class="button button-small btn-edit-prod" data-id="${p.id}" style="border-radius:6px;border-color:var(--aif-border-light);color:var(--aif-primary);padding:4px 10px;" title="Sửa">
+                            <span class="dashicons dashicons-edit" style="font-size:14px;margin-top:3px;"></span>
+                        </button>
+                        <button class="button button-small btn-toggle-prod" data-id="${p.id}" data-status="${p.status}"
+                            style="border-radius:6px;border-color:${isActive ? '#dcfce7' : '#fef3c7'};color:${isActive ? '#16a34a' : '#d97706'};padding:4px 10px;"
+                            title="${isActive ? 'Đang bán — nhấn để ngừng' : 'Đang ngừng — nhấn để kích hoạt'}">
+                            <span class="dashicons ${isActive ? 'dashicons-visibility' : 'dashicons-hidden'}" style="font-size:14px;margin-top:3px;"></span>
+                        </button>
+                        <button class="button button-small btn-del-prod" data-id="${p.id}" style="border-radius:6px;border-color:#fee2e2;color:#ef4444;padding:4px 10px;" title="Xóa hẳn">
+                            <span class="dashicons dashicons-trash" style="font-size:14px;margin-top:3px;"></span>
+                        </button>
+                    </td>
+                </tr>`;
+            });
+        }
+        $('#aif-n8n-products-body').html(html);
+    }
+
+    // ── Filter events ────────────────────────────────────────────────────────
+    // Search — lọc ngay khi gõ (debounce 200ms)
+    let _prodSearchTimer;
+    $(document).on('input', '#aif-product-search', function() {
+        const val = $(this).val();
+        $('#aif-product-search-clear').toggle(val.length > 0);
+        clearTimeout(_prodSearchTimer);
+        _prodSearchTimer = setTimeout(renderProducts, 200);
+    });
+    $(document).on('click', '#aif-product-search-clear', function() {
+        $('#aif-product-search').val('');
+        $(this).hide();
+        renderProducts();
+    });
+
+    // Status filter
+    $(document).on('click', '#aif-filter-prod-status .aif-filter-btn', function() {
+        $('#aif-filter-prod-status .aif-filter-btn').removeClass('active');
+        $(this).addClass('active');
+        renderProducts();
+    });
+
+    // Category filter
+    $(document).on('click', '#aif-filter-prod-category .aif-filter-btn', function() {
+        $('#aif-filter-prod-category .aif-filter-btn').removeClass('active');
+        $(this).addClass('active');
+        renderProducts();
+    });
 
     // ========================
     // SETTINGS

@@ -137,6 +137,28 @@ if (!defined('ABSPATH'))
             </div>
         </div>
 
+        <!-- Filter bar -->
+        <div class="aif-product-filter-bar">
+            <!-- Search -->
+            <div class="aif-product-search-wrap">
+                <span class="dashicons dashicons-search aif-product-search-icon"></span>
+                <input type="text" id="aif-product-search" placeholder="Tìm tên sản phẩm, SKU..." autocomplete="off">
+                <button type="button" id="aif-product-search-clear" class="aif-product-search-clear" style="display:none;" title="Xóa">&#10005;</button>
+            </div>
+
+            <!-- Status filter -->
+            <div class="aif-filter-btn-group" id="aif-filter-prod-status">
+                <button class="aif-filter-btn active" data-status="">Tất cả</button>
+                <button class="aif-filter-btn" data-status="active">Đang bán</button>
+                <button class="aif-filter-btn" data-status="inactive">Ngừng bán</button>
+            </div>
+
+            <!-- Category filter (dynamic) -->
+            <div class="aif-filter-btn-group" id="aif-filter-prod-category">
+                <button class="aif-filter-btn active" data-cat="">Mọi danh mục</button>
+            </div>
+        </div>
+
         <div class="aif-card">
             <table class="aif-table">
                 <thead>

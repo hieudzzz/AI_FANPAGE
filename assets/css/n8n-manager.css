@@ -992,8 +992,81 @@
     }
 
     /* ============================================================
-   SETTINGS TAB — SIDEBAR LAYOUT
-   ============================================================ */
+       PRODUCT FILTER BAR
+    ============================================================ */
+    .aif-product-filter-bar {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 12px 16px;
+        background: #fff;
+        border: 1px solid #e9edf3;
+        border-radius: 12px;
+        margin-bottom: 16px;
+    }
+
+    /* Search */
+    .aif-product-search-wrap {
+        position: relative;
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+    }
+    .aif-product-search-icon {
+        position: absolute;
+        left: 10px;
+        font-size: 15px !important;
+        width: 15px !important;
+        height: 15px !important;
+        color: #94a3b8;
+        pointer-events: none;
+    }
+    #aif-product-search {
+        padding: 7px 30px 7px 32px !important;
+        border: 1.5px solid #e2e8f0 !important;
+        border-radius: 8px !important;
+        font-size: 13px !important;
+        width: 220px !important;
+        background: #f8fafc !important;
+        transition: border-color 0.2s, width 0.25s, box-shadow 0.2s !important;
+        color: #1e293b !important;
+    }
+    #aif-product-search:focus {
+        border-color: #6366f1 !important;
+        background: #fff !important;
+        box-shadow: 0 0 0 3px rgba(99,102,241,0.1) !important;
+        width: 280px !important;
+        outline: none !important;
+    }
+    .aif-product-search-clear {
+        position: absolute;
+        right: 8px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 13px;
+        color: #94a3b8;
+        padding: 2px 4px;
+        line-height: 1;
+        border-radius: 4px;
+        transition: color 0.15s;
+    }
+    .aif-product-search-clear:hover { color: #ef4444; }
+
+    /* Divider giữa các nhóm filter */
+    .aif-product-filter-bar .aif-filter-btn-group {
+        border-left: 1px solid #e9edf3;
+        padding-left: 10px;
+    }
+    .aif-product-filter-bar .aif-filter-btn-group:first-of-type {
+        border-left: none;
+        padding-left: 0;
+    }
+
+    /* ============================================================
+       SETTINGS TAB — SIDEBAR LAYOUT
+    ============================================================ */
     .aif-settings-layout {
         display: flex;
         background: #fff;
