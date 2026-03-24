@@ -319,9 +319,9 @@ if ($pages) {
                         <thead>
                             <tr>
                                 <th style="width: 40%;">Fanpage</th>
-                                <th style="width: 15%; text-align:center;">Bài đã đăng</th>
+                                <th style="width: 20%; text-align:center;">Bài đã đăng</th>
                                 <th style="width: 20%;">Thời Hạn</th>
-                                <th style="width: 25%; text-align: right;">Hành Động</th>
+                                <th style="width: 20%; text-align: right;">Hành Động</th>
                             </tr>
                         </thead>
                         <tbody>
