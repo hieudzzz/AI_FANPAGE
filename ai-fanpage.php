@@ -71,6 +71,8 @@ class AI_Fanpage
         // AJAX Handlers
         add_action('wp_ajax_aif_import_gsheet', [$this, 'handle_import_gsheet']);
         add_action('wp_ajax_aif_generate_content', [$this, 'handle_generate_content']);
+        add_action('wp_ajax_aif_generate_variations', [$this, 'handle_generate_variations']);
+        add_action('wp_ajax_aif_smart_check', [$this, 'handle_smart_check']);
         add_action('wp_ajax_aif_bulk_process_item', [$this, 'handle_bulk_process_item']);
         add_action('wp_ajax_aif_get_post_details', [$this, 'handle_get_post_details']);
         add_action('wp_ajax_aif_save_fanpage', [$this, 'handle_save_fanpage']);
@@ -561,41 +563,157 @@ class AI_Fanpage
     {
         check_ajax_referer('aif_nonce', 'nonce');
 
-        $post_id = isset($_POST['post_id']) ? intval($_POST['post_id']) : 0;
-        $prompt_input = isset($_POST['prompt']) ? sanitize_textarea_field($_POST['prompt']) : '';
-        $platform = isset($_POST['platform']) ? sanitize_text_field($_POST['platform']) : 'facebook';
-        $current_content = isset($_POST['current_content']) ? sanitize_textarea_field($_POST['current_content']) : '';
+        $post_id         = isset($_POST['post_id'])         ? intval($_POST['post_id'])                         : 0;
+        $prompt_input    = isset($_POST['prompt'])          ? sanitize_textarea_field($_POST['prompt'])         : '';
+        $platform        = isset($_POST['platform'])        ? sanitize_text_field($_POST['platform'])           : 'facebook';
+        $current_content = isset($_POST['current_content']) ? sanitize_textarea_field($_POST['current_content']): '';
+        $tone            = isset($_POST['tone'])            ? sanitize_text_field($_POST['tone'])               : '';
 
-        // If generic generate, use current content as base. If prompt, use prompt.
-        // Fetch post to get Industry info if available
         $industry = '';
         if ($post_id) {
-            $db = new AIF_DB();
+            $db   = new AIF_DB();
             $post = $db->get($post_id);
-            if ($post)
-                $industry = $post->industry;
+            if ($post) $industry = $post->industry;
         }
 
-        // If generic generate, use current content as base. If prompt, use prompt.
         $user_prompt = $prompt_input ? $prompt_input : $current_content;
 
         $input = [
-            'industry' => $industry,
-            'description' => $user_prompt . " (Context: $current_content)"
+            'industry'    => $industry,
+            'description' => $user_prompt . ($current_content ? " (Context: $current_content)" : ''),
         ];
 
-        $service = new AIF_AI_Generator();
-        $response = $service->generate($input, $platform);
+        $service  = new AIF_AI_Generator();
+        $response = $service->generate($input, $platform, $tone);
 
         if ($response && isset($response['success']) && $response['success']) {
             wp_send_json_success($response);
         } else {
             $error_msg = isset($response['caption']) ? $response['caption'] : 'AI Generation Failed - Lỗi không xác định';
-            if (isset($response['error'])) {
-                $error_msg = $response['error'];
-            }
+            if (isset($response['error'])) $error_msg = $response['error'];
             wp_send_json_error($error_msg);
         }
+    }
+
+    // ── Generate 3 variations ────────────────────────────────────────────────
+    public function handle_generate_variations()
+    {
+        check_ajax_referer('aif_nonce', 'nonce');
+
+        $post_id         = isset($_POST['post_id'])         ? intval($_POST['post_id'])                         : 0;
+        $prompt_input    = isset($_POST['prompt'])          ? sanitize_textarea_field($_POST['prompt'])         : '';
+        $platform        = isset($_POST['platform'])        ? sanitize_text_field($_POST['platform'])           : 'facebook';
+        $current_content = isset($_POST['current_content']) ? sanitize_textarea_field($_POST['current_content']): '';
+        $tone            = isset($_POST['tone'])            ? sanitize_text_field($_POST['tone'])               : '';
+
+        if (empty($prompt_input) && empty($current_content)) {
+            wp_send_json_error('Vui lòng nhập mô tả yêu cầu.');
+        }
+
+        $industry = '';
+        if ($post_id) {
+            $db   = new AIF_DB();
+            $post = $db->get($post_id);
+            if ($post) $industry = $post->industry;
+        }
+
+        $user_prompt = $prompt_input ? $prompt_input : $current_content;
+        $input = [
+            'industry'    => $industry,
+            'description' => $user_prompt . ($current_content ? " (Context: $current_content)" : ''),
+        ];
+
+        $service    = new AIF_AI_Generator();
+        $variations = $service->generate_variations($input, $platform, $tone);
+
+        if (empty($variations)) {
+            wp_send_json_error('Không thể tạo nội dung. Vui lòng thử lại.');
+        }
+
+        wp_send_json_success(['variations' => $variations]);
+    }
+
+    // ── Smart Check caption ──────────────────────────────────────────────────
+    public function handle_smart_check()
+    {
+        check_ajax_referer('aif_nonce', 'nonce');
+
+        $content = isset($_POST['content']) ? wp_unslash($_POST['content']) : '';
+        $title   = isset($_POST['title'])   ? sanitize_text_field(wp_unslash($_POST['title'])) : '';
+
+        $issues  = [];
+        $score   = 100;
+
+        // 1. Độ dài caption
+        $len = mb_strlen(strip_tags($content));
+        if ($len < 50) {
+            $issues[] = ['type' => 'error',   'msg' => "Nội dung quá ngắn ({$len} ký tự). Nên ít nhất 50 ký tự."];
+            $score -= 30;
+        } elseif ($len < 150) {
+            $issues[] = ['type' => 'warning', 'msg' => "Nội dung hơi ngắn ({$len} ký tự). Nên từ 150+ ký tự để đạt reach tốt."];
+            $score -= 10;
+        } elseif ($len > 5000) {
+            $issues[] = ['type' => 'warning', 'msg' => "Nội dung quá dài ({$len} ký tự). Facebook cắt bài sau ~400 ký tự hiển thị."];
+            $score -= 10;
+        }
+
+        // 2. Thiếu tiêu đề
+        if (empty(trim($title))) {
+            $issues[] = ['type' => 'warning', 'msg' => 'Chưa có tiêu đề. Tiêu đề giúp tăng CTR đáng kể.'];
+            $score -= 15;
+        }
+
+        // 3. Spam words
+        $spam_words = ['click ngay', 'mua ngay', 'siêu rẻ', 'free ship', 'giảm giá sốc', 'cực hot', 'inbox ngay', 'dm ngay'];
+        $content_lower = mb_strtolower($content);
+        $found_spam = [];
+        foreach ($spam_words as $w) {
+            if (mb_strpos($content_lower, $w) !== false) $found_spam[] = $w;
+        }
+        if (count($found_spam) > 2) {
+            $issues[] = ['type' => 'warning', 'msg' => 'Có ' . count($found_spam) . ' cụm từ spam: "' . implode('", "', $found_spam) . '". Facebook có thể hạn chế reach.'];
+            $score -= 15;
+        }
+
+        // 4. Không có CTA
+        $cta_signals = ['comment', 'bình luận', 'chia sẻ', 'share', 'like', 'tag', 'liên hệ', 'nhắn tin', 'inbox', 'dm', 'đặt hàng', 'mua', 'xem thêm'];
+        $has_cta = false;
+        foreach ($cta_signals as $cta) {
+            if (mb_strpos($content_lower, $cta) !== false) { $has_cta = true; break; }
+        }
+        if (!$has_cta) {
+            $issues[] = ['type' => 'info', 'msg' => 'Bài viết chưa có CTA (Call to Action). Thêm lời kêu gọi hành động để tăng tương tác.'];
+            $score -= 10;
+        }
+
+        // 5. Không có hashtag
+        if (mb_strpos($content, '#') === false) {
+            $issues[] = ['type' => 'info', 'msg' => 'Chưa có hashtag. Thêm 3–5 hashtag liên quan để tăng khả năng tìm kiếm.'];
+            $score -= 5;
+        }
+
+        // 6. Quá nhiều emoji liên tiếp
+        if (preg_match('/(\p{So}|\p{Sm}){5,}/u', $content)) {
+            $issues[] = ['type' => 'info', 'msg' => 'Có quá nhiều emoji liên tiếp. Dùng tiết chế để trông chuyên nghiệp hơn.'];
+            $score -= 5;
+        }
+
+        $score = max(0, $score);
+
+        // Xếp loại
+        if ($score >= 85)      { $grade = 'A'; $grade_label = 'Tốt'; $grade_color = '#059669'; }
+        elseif ($score >= 65)  { $grade = 'B'; $grade_label = 'Khá'; $grade_color = '#0284c7'; }
+        elseif ($score >= 45)  { $grade = 'C'; $grade_label = 'Trung bình'; $grade_color = '#d97706'; }
+        else                   { $grade = 'D'; $grade_label = 'Yếu'; $grade_color = '#ef4444'; }
+
+        wp_send_json_success([
+            'score'       => $score,
+            'grade'       => $grade,
+            'grade_label' => $grade_label,
+            'grade_color' => $grade_color,
+            'issues'      => $issues,
+            'length'      => $len,
+        ]);
     }
 
     public function handle_get_post_details()

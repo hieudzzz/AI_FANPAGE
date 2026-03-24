@@ -111,11 +111,14 @@ jQuery(document).ready(function ($) {
     // ========================
     // CHATS
     // ========================
-    function loadChats() {
-        $('#aif-n8n-chats-body').html('<tr><td colspan="7" class="aif-loading-cell"><div class="aif-spinner"></div> Đang tải dữ liệu...</td></tr>');
+    // silent=true → không hiện spinner (dùng khi polling, không làm giật UI)
+    function loadChats(silent) {
+        if (!silent) {
+            $('#aif-n8n-chats-body').html('<tr><td colspan="7" class="aif-loading-cell"><div class="aif-spinner"></div> Đang tải dữ liệu...</td></tr>');
+        }
         $.post(ajaxurl, { action: 'aif_n8n_get_chats', nonce: aif_ajax.nonce }, function (res) {
             if (!res.success) {
-                $('#aif-n8n-chats-body').html('<tr><td colspan="7" style="text-align:center;padding:30px;color:#ef4444;">Lỗi tải dữ liệu.</td></tr>');
+                if (!silent) $('#aif-n8n-chats-body').html('<tr><td colspan="7" style="text-align:center;padding:30px;color:#ef4444;">Lỗi tải dữ liệu.</td></tr>');
                 return;
             }
             allChatsCache = res.data;
@@ -558,12 +561,31 @@ jQuery(document).ready(function ($) {
     // ACTIONS
     // ========================
 
-    // Delete Chat
+    // Delete Chat — xoá khỏi cache + DOM, không reload toàn bảng
     $(document).on('click', '.btn-del-chat', function () {
         if (!confirm('Xóa phiên chat này và toàn bộ tin nhắn liên quan?')) return;
-        const id = $(this).data('id');
+        const id     = $(this).data('id');
+        const $row   = $(this).closest('tr');
         $.post(ajaxurl, { action: 'aif_n8n_delete_chat', id: id, nonce: aif_ajax.nonce }, function (res) {
-            if (res.success) loadChats();
+            if (res.success) {
+                // Xóa khỏi cache
+                allChatsCache = allChatsCache
+                    ? allChatsCache.filter(c => String(c.id) !== String(id))
+                    : [];
+                // Xóa đúng row khỏi DOM
+                $row.css({ transition: 'opacity .2s', opacity: 0 });
+                setTimeout(function () {
+                    $row.remove();
+                    // Nếu bảng trống → hiện empty state
+                    if ($('#aif-n8n-chats-body tr').length === 0) {
+                        $('#aif-n8n-chats-body').html(
+                            emptyState('format-chat', 'Chưa có phiên chat nào', 'Khi khách nhắn tin qua Messenger, phiên chat sẽ hiện tại đây.')
+                        );
+                    }
+                    // Cập nhật badge
+                    $('#kpi-badge-chats').removeClass('aif-badge-unread').text(allChatsCache.length);
+                }, 200);
+            }
         });
     });
 
@@ -933,7 +955,7 @@ jQuery(document).ready(function ($) {
                             }
                         }
                     } else if (!allChatsCache) {
-                        if (currentTab === 'chats') loadChats();
+                        if (currentTab === 'chats') loadChats(true); // silent, không hiện spinner
                     }
 
                     if (currentTab === 'leads') loadLeads();

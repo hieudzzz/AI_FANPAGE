@@ -15,7 +15,24 @@ class AIF_AI_Generator
      * Generate content based on context and platform.
      * Automatically uses the AI provider configured in Settings.
      */
-    public function generate($raw_content, $platform)
+    /**
+     * Tone definitions: key => [label, phong_cach_instruction]
+     */
+    private static $tone_map = [
+        'ban_hang'      => ['label' => '🛒 Bán hàng',       'style' => 'Giọng văn bán hàng mạnh mẽ, tập trung vào lợi ích sản phẩm, tạo cảm giác cấp bách, CTA rõ ràng. Dùng nhiều dấu chấm than và bullet point.'],
+        'viral'         => ['label' => '🔥 Viral',           'style' => 'Giọng văn gây sốc, kích thích tò mò, dùng sự thật ít người biết, đặt câu hỏi khiêu khích. Ngắn gọn, mạnh mẽ, chia sẻ nhiều.'],
+        'kien_thuc'     => ['label' => '📚 Kiến thức',       'style' => 'Giọng văn chuyên gia, uy tín, có số liệu và dẫn chứng cụ thể. Phân tích sâu, cấu trúc rõ ràng, cung cấp giá trị thực.'],
+        'storytelling'  => ['label' => '📖 Storytelling',    'style' => 'Kể câu chuyện cảm xúc, có nhân vật, có diễn biến và bài học. Giọng văn ấm áp, chân thực, kéo người đọc vào câu chuyện.'],
+        'hai_huoc'      => ['label' => '😄 Hài hước',        'style' => 'Giọng văn vui vẻ, hài hước, dùng sự so sánh bất ngờ và meme. Nhẹ nhàng nhưng có điểm nhấn, khiến người đọc mỉm cười.'],
+        'chuyen_nghiep' => ['label' => '💼 Chuyên nghiệp',  'style' => 'Giọng văn chuyên nghiệp, lịch sự, phù hợp môi trường doanh nghiệp. Ngôn ngữ trau chuốt, thuyết phục, đáng tin cậy.'],
+    ];
+
+    public static function get_tones()
+    {
+        return self::$tone_map;
+    }
+
+    public function generate($raw_content, $platform, $tone = '')
     {
         $industry    = '';
         $description = '';
@@ -27,8 +44,14 @@ class AIF_AI_Generator
             $description = $raw_content;
         }
 
+        // Tone instruction
+        $tone_instruction = '';
+        if ($tone && isset(self::$tone_map[$tone])) {
+            $tone_instruction = self::$tone_map[$tone]['style'];
+        }
+
         // Prompt Engineering
-        $seed             = wp_hash(microtime() . $description);
+        $seed              = wp_hash(microtime() . $description);
         $uniqueness_factor = substr($seed, 0, 8);
 
         $prompt  = "Bạn là một Chuyên gia Nghiên cứu Thị trường & Content Strategist hàng đầu.\n";
@@ -42,7 +65,11 @@ class AIF_AI_Generator
         $prompt .= "--- YÊU CẦU CẤU TRÚC ---\n";
         $prompt .= "1. TIÊU ĐỀ (TITLE): Hook cực mạnh.\n";
         $prompt .= "2. NỘI DUNG (CONTENT): PHẦN MỞ (Hook) -> PHẦN THÂN (Value/Insight) -> PHẦN KẾT (Solution) -> CTA (Mạnh mẽ).\n";
-        $prompt .= "3. PHONG CÁCH: Nghiên cứu chuyên sâu, Sáng tạo đột phá, Insight đắt giá.\n";
+        if ($tone_instruction) {
+            $prompt .= "3. PHONG CÁCH VIẾT: $tone_instruction\n";
+        } else {
+            $prompt .= "3. PHONG CÁCH: Nghiên cứu chuyên sâu, Sáng tạo đột phá, Insight đắt giá.\n";
+        }
 
         $system = 'You are a professional content creator. Respond in JSON format with keys: "title", "content", "hashtags". Language: Vietnamese. Return ONLY the JSON object.';
 
@@ -63,6 +90,24 @@ class AIF_AI_Generator
             'caption' => 'Gặp lỗi khi kết nối với AI API.',
             'success' => false,
         ];
+    }
+
+    /**
+     * Generate 3 variations for the user to choose from.
+     * Calls generate() 3 times with slight uniqueness variation.
+     */
+    public function generate_variations($raw_content, $platform, $tone = '')
+    {
+        $variations = [];
+        for ($i = 0; $i < 3; $i++) {
+            // Nhỏ delay để seed khác nhau
+            if ($i > 0) usleep(50000);
+            $result = $this->generate($raw_content, $platform, $tone);
+            if ($result && !empty($result['success'])) {
+                $variations[] = $result;
+            }
+        }
+        return $variations;
     }
 
     /**

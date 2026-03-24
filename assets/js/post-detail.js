@@ -485,6 +485,20 @@ jQuery(document).ready(function ($) {
     // =========================================================
     // 5. AI Generation
     // =========================================================
+
+    // ── Tone selector ─────────────────────────────────────────
+    $(document).on('click', '.aif-tone-btn', function () {
+        $('.aif-tone-btn').removeClass('active');
+        $(this).addClass('active');
+        $('#aif-tone-input').val($(this).data('tone'));
+    });
+
+    // Helper lấy tone đang chọn
+    function getSelectedTone() {
+        return $('#aif-tone-input').val() || '';
+    }
+
+    // ── Suggestion chips ───────────────────────────────────────
     $('.ai-suggestion-chip').on('click', function () {
         const chipText = $(this).text().trim().replace(/\s+/g, ' ');
         const $desc    = $('#aif-description');
@@ -492,6 +506,66 @@ jQuery(document).ready(function ($) {
         $desc.val(current ? current + ', ' + chipText : chipText).focus();
     });
 
+    // ── Hiện smart check bar khi có nội dung ─────────────────
+    $('#aif-caption').on('input', function () {
+        const hasContent = $(this).val().trim().length > 20;
+        $('#aif-smart-check-bar').toggle(hasContent);
+    });
+    // Trigger on page load nếu đã có nội dung
+    if ($('#aif-caption').val().trim().length > 20) {
+        $('#aif-smart-check-bar').show();
+    }
+
+    // ── Smart Check ───────────────────────────────────────────
+    $('#btn-smart-check').on('click', function () {
+        const content = $('#aif-caption').val();
+        const title   = $('#aif-title').val();
+        if (!content.trim()) { AIF_Toast && AIF_Toast.show('Nội dung đang trống!', 'error'); return; }
+
+        const $btn = $(this).prop('disabled', true).text('Đang kiểm tra...');
+
+        $.post(ajaxUrl, {
+            action: 'aif_smart_check',
+            nonce: nonce,
+            content: content,
+            title: title,
+        }, function (res) {
+            $btn.prop('disabled', false).html('<span class="dashicons dashicons-search" style="font-size:13px;width:13px;height:13px;vertical-align:middle;margin-right:3px;"></span> Kiểm tra ngay');
+            if (!res.success) return;
+
+            const d = res.data;
+
+            // Grade badge
+            $('#aif-check-grade-badge').text(d.grade).css({
+                'background': d.grade_color + '22',
+                'color': d.grade_color,
+                'border': '2px solid ' + d.grade_color,
+            });
+            $('#aif-check-label').text('Điểm: ' + d.score + '/100 — ' + d.grade_label)
+                .css('color', d.grade_color);
+            $('#aif-check-score-fill').css({ 'width': d.score + '%', 'background': d.grade_color });
+
+            // Issues
+            const $issues = $('#aif-check-issues');
+            if (d.issues && d.issues.length > 0) {
+                const iconMap = { error: '❌', warning: '⚠️', info: 'ℹ️' };
+                const colorMap = { error: '#fef2f2', warning: '#fffbeb', info: '#eff6ff' };
+                const borderMap = { error: '#fca5a5', warning: '#fde68a', info: '#bfdbfe' };
+                let html = '';
+                d.issues.forEach(function (iss) {
+                    html += `<div style="display:flex;align-items:flex-start;gap:6px;padding:6px 9px;border-radius:6px;font-size:12px;margin-bottom:4px;background:${colorMap[iss.type]};border:1px solid ${borderMap[iss.type]};">
+                        <span>${iconMap[iss.type]}</span>
+                        <span style="color:#374151;">${iss.msg}</span>
+                    </div>`;
+                });
+                $issues.html(html).show();
+            } else {
+                $issues.html('<div style="font-size:12px;color:#059669;font-weight:600;">✅ Nội dung đạt chất lượng tốt! Không có vấn đề nào.</div>').show();
+            }
+        });
+    });
+
+    // ── Generate (1 version) ──────────────────────────────────
     $('#btn-generate-v2').on('click', function (e) {
         e.preventDefault();
         const description = $('#aif-description').val().trim();
@@ -502,8 +576,9 @@ jQuery(document).ready(function ($) {
         }
 
         const $btn    = $(this);
+        const origHtml = $btn.html();
         const $loader = $('#aif-ai-loader');
-        $btn.prop('disabled', true);
+        $btn.prop('disabled', true).html('<span class="dashicons dashicons-update" style="font-size:16px;width:16px;height:16px;display:inline-block;animation:aif-rotate .7s linear infinite;"></span> Đang tạo...');
         $loader.addClass('is-active');
 
         $.ajax({
@@ -514,7 +589,8 @@ jQuery(document).ready(function ($) {
                 nonce: nonce,
                 post_id: postId,
                 prompt: description,
-                current_content: $('#aif-caption').val()
+                current_content: $('#aif-caption').val(),
+                tone: getSelectedTone(),
             },
             success: function (response) {
                 if (response.success) {
@@ -523,19 +599,152 @@ jQuery(document).ready(function ($) {
                     if (data.caption) {
                         let fullContent = data.caption;
                         if (data.hashtags) fullContent += '\n\n' + data.hashtags;
-                        $('#aif-caption').val(fullContent);
+                        $('#aif-caption').val(fullContent).trigger('input');
                     }
                     _syncStatusUI('Content updated');
                     if (window.AIF_Toast) AIF_Toast.show('Đã tạo nội dung AI thành công!', 'success');
                 } else {
-                    alert('Lỗi AI: ' + (response.data || 'Không thể tạo nội dung.'));
+                    if (window.AIF_Toast) AIF_Toast.show('Lỗi AI: ' + (response.data || 'Không thể tạo nội dung.'), 'error');
+                    else alert('Lỗi AI: ' + (response.data || ''));
                 }
             },
             complete: function () {
-                $btn.prop('disabled', false);
+                $btn.prop('disabled', false).html(origHtml);
                 $loader.removeClass('is-active');
             }
         });
+    });
+
+    // ── Generate 3 Variations ─────────────────────────────────
+    $('#btn-generate-variations').on('click', function () {
+        const description = $('#aif-description').val().trim();
+        if (!description) {
+            if (window.AIF_Toast) AIF_Toast.show('Vui lòng nhập mô tả yêu cầu!', 'error');
+            return;
+        }
+
+        const $btn     = $(this);
+        const origHtml = $btn.html();
+        const $loader  = $('#aif-ai-loader');
+        $btn.prop('disabled', true).html('<span class="dashicons dashicons-update" style="font-size:14px;width:14px;height:14px;display:inline-block;animation:aif-rotate .7s linear infinite;"></span> Đang tạo 3 bản...');
+        $loader.addClass('is-active');
+        $('#aif-variations-panel').hide();
+
+        $.ajax({
+            url: ajaxUrl,
+            type: 'POST',
+            timeout: 120000,
+            data: {
+                action: 'aif_generate_variations',
+                nonce: nonce,
+                post_id: postId,
+                prompt: description,
+                current_content: $('#aif-caption').val(),
+                tone: getSelectedTone(),
+            },
+            success: function (res) {
+                if (!res.success) {
+                    AIF_Toast && AIF_Toast.show('Lỗi: ' + res.data, 'error');
+                    return;
+                }
+                const vars = res.data.variations;
+                if (!vars || vars.length === 0) {
+                    AIF_Toast && AIF_Toast.show('Không tạo được phiên bản nào. Thử lại!', 'error');
+                    return;
+                }
+
+                let html = '';
+                vars.forEach(function (v, i) {
+                    const fullText   = v.caption || '';
+                    const hasMore    = fullText.length > 180;
+                    const previewTxt = hasMore
+                        ? fullText.substring(0, 180).replace(/\n/g, ' ') + '…'
+                        : fullText.replace(/\n/g, ' ');
+                    html += `
+                    <div class="aif-variation-card" data-index="${i}" style="border:2px solid #e2e8f0;border-radius:10px;padding:14px;transition:border-color .15s,box-shadow .15s;background:#fff;">
+                        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px;">
+                            <div style="font-size:13px;font-weight:700;color:#1e293b;flex:1;">${i + 1}. ${v.generated_title || 'Phiên bản ' + (i + 1)}</div>
+                            <button type="button" class="btn-pick-variation aif-btn aif-btn-primary" data-index="${i}"
+                                style="font-size:11px;padding:5px 11px;white-space:nowrap;flex-shrink:0;">
+                                Chọn
+                            </button>
+                        </div>
+
+                        <!-- Preview ngắn -->
+                        <div class="var-preview" style="font-size:12px;color:#64748b;line-height:1.6;">${previewTxt}</div>
+
+                        <!-- Nội dung đầy đủ (ẩn mặc định) -->
+                        <div class="var-full" style="display:none;font-size:12px;color:#374151;line-height:1.8;white-space:pre-wrap;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;margin-top:6px;max-height:260px;overflow-y:auto;">${fullText}</div>
+
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;flex-wrap:wrap;gap:6px;">
+                            ${v.hashtags ? `<div style="font-size:11px;color:#6366f1;">${v.hashtags}</div>` : '<div></div>'}
+                            ${hasMore ? `
+                            <button type="button" class="btn-var-expand"
+                                style="font-size:11px;color:#6366f1;background:none;border:none;cursor:pointer;padding:0;display:inline-flex;align-items:center;gap:3px;font-weight:600;white-space:nowrap;flex-shrink:0;">
+                                <span class="expand-icon dashicons dashicons-arrow-down-alt2" style="font-size:12px;width:12px;height:12px;transition:transform .2s;"></span>
+                                <span class="expand-label">Xem đầy đủ</span>
+                            </button>` : ''}
+                        </div>
+                    </div>`;
+                });
+                $('#aif-variations-list').html(html);
+                $('#aif-variations-panel').show();
+
+                // Lưu tạm variations để dùng khi user chọn
+                window._aifVariations = vars;
+            },
+            complete: function () {
+                $btn.prop('disabled', false).html(origHtml);
+                $loader.removeClass('is-active');
+            }
+        });
+    });
+
+    // Chọn 1 variation → đổ vào editor
+    $(document).on('click', '.btn-pick-variation', function (e) {
+        e.stopPropagation();
+        const idx = parseInt($(this).data('index'));
+        const v   = window._aifVariations && window._aifVariations[idx];
+        if (!v) return;
+
+        if (v.generated_title) $('#aif-title').val(v.generated_title);
+        if (v.caption) {
+            let full = v.caption;
+            if (v.hashtags) full += '\n\n' + v.hashtags;
+            $('#aif-caption').val(full).trigger('input');
+        }
+
+        _syncStatusUI('Content updated');
+        $('#aif-variations-panel').hide();
+        AIF_Toast && AIF_Toast.show('Đã chọn phiên bản ' + (idx + 1) + '!', 'success');
+    });
+
+    // Toggle expand / collapse nội dung đầy đủ
+    $(document).on('click', '.btn-var-expand', function (e) {
+        e.stopPropagation();
+        const $card    = $(this).closest('.aif-variation-card');
+        const $preview = $card.find('.var-preview');
+        const $full    = $card.find('.var-full');
+        const $icon    = $(this).find('.expand-icon');
+        const $label   = $(this).find('.expand-label');
+        const isOpen   = $full.is(':visible');
+
+        $preview.toggle(isOpen);   // ẩn preview khi mở full, hiện lại khi đóng
+        $full.slideToggle(180);
+        $icon.css('transform', isOpen ? '' : 'rotate(180deg)');
+        $label.text(isOpen ? 'Xem đầy đủ' : 'Thu gọn');
+    });
+
+    // Hover effect cho variation card
+    $(document).on('mouseenter', '.aif-variation-card', function () {
+        $(this).css({ 'border-color': '#6366f1', 'box-shadow': '0 0 0 3px rgba(99,102,241,0.1)' });
+    }).on('mouseleave', '.aif-variation-card', function () {
+        $(this).css({ 'border-color': '#e2e8f0', 'box-shadow': 'none' });
+    });
+
+    // Đóng variations panel
+    $('#btn-close-variations').on('click', function () {
+        $('#aif-variations-panel').hide();
     });
 
     // =========================================================

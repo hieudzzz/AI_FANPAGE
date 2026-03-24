@@ -493,6 +493,26 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($json_data) && isset($json
                                     <span class="spinner"></span>
                                     <span class="aif-loading-text">AI đang suy nghĩ...</span>
                                 </div>
+
+                                <!-- Tone Selector -->
+                                <div style="margin-bottom:12px;">
+                                    <label style="display:block;font-size:12px;font-weight:700;color:#64748b;margin-bottom:7px;text-transform:uppercase;letter-spacing:0.5px;">
+                                        <span class="dashicons dashicons-art" style="font-size:13px;vertical-align:middle;margin-right:3px;"></span> Phong cách viết
+                                    </label>
+                                    <div class="aif-tone-grid" id="aif-tone-grid">
+                                        <?php
+                                        $tones = AIF_AI_Generator::get_tones();
+                                        $current_tone = $post ? ($post->tone ?? '') : '';
+                                        foreach ($tones as $key => $info):
+                                        ?>
+                                        <button type="button" class="aif-tone-btn <?php echo ($current_tone === $key) ? 'active' : ''; ?>" data-tone="<?php echo esc_attr($key); ?>">
+                                            <?php echo esc_html($info['label']); ?>
+                                        </button>
+                                        <?php endforeach; ?>
+                                    </div>
+                                    <input type="hidden" name="aif_tone" id="aif-tone-input" value="<?php echo esc_attr($current_tone); ?>">
+                                </div>
+
                                 <div class="aif-form-group" style="margin-bottom: 12px;">
                                     <label>Yêu cầu cho AI (Prompt/Description)</label>
                                     <textarea name="aif_description" id="aif-description" class="aif-textarea" rows="4"
@@ -502,22 +522,56 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($json_data) && isset($json
                                         style="display: flex; justify-content: space-between; align-items: center; background: #fff; border: 1px solid var(--aif-border-light); border-top: 1px dashed #e2e8f0; padding: 10px 14px; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;">
                                         <div style="flex: 1; display: flex; align-items: center;">
                                             <div class="aif-suggestion-chips" style="margin-top: 0;">
-                                                <span class="aif-chip ai-suggestion-chip" style="margin-bottom: 0;">Ngắn
-                                                    gọn</span>
-                                                <span class="aif-chip ai-suggestion-chip" style="margin-bottom: 0;">Hài
-                                                    hước</span>
-                                                <span class="aif-chip ai-suggestion-chip"
-                                                    style="margin-bottom: 0;">Chuyên nghiệp</span>
+                                                <span class="aif-chip ai-suggestion-chip" style="margin-bottom: 0;">Ngắn gọn</span>
+                                                <span class="aif-chip ai-suggestion-chip" style="margin-bottom: 0;">Hài hước</span>
+                                                <span class="aif-chip ai-suggestion-chip" style="margin-bottom: 0;">Chuyên nghiệp</span>
                                             </div>
                                         </div>
-                                        <button type="button" id="btn-generate-v2" class="aif-btn aif-btn-primary"
-                                            style="padding: 8px 16px; min-width: 100px; font-size: 13px; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.4);">
-                                            <span class="dashicons dashicons-marker"
-                                                style="font-size: 16px; width: 16px; height: 16px; margin-right: 5px;"></span>
-                                            Generate
-                                        </button>
+                                        <div style="display:flex;gap:8px;align-items:center;">
+                                            <button type="button" id="btn-generate-variations" class="aif-btn aif-btn-outline"
+                                                style="padding:8px 13px;font-size:12px;white-space:nowrap;"
+                                                title="Tạo 3 phiên bản để chọn">
+                                                <span class="dashicons dashicons-images-alt2" style="font-size:14px;width:14px;height:14px;margin-right:3px;vertical-align:middle;"></span>
+                                                3 phiên bản
+                                            </button>
+                                            <button type="button" id="btn-generate-v2" class="aif-btn aif-btn-primary"
+                                                style="padding: 8px 16px; min-width: 100px; font-size: 13px; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.4);">
+                                                <span class="dashicons dashicons-marker"
+                                                    style="font-size: 16px; width: 16px; height: 16px; margin-right: 5px;"></span>
+                                                Generate
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
+                            </div>
+
+                            <!-- Smart Check Bar (hiển thị sau khi có content) -->
+                            <div id="aif-smart-check-bar" style="display:none; margin-bottom:14px; padding:10px 14px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px;">
+                                <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+                                    <div style="display:flex;align-items:center;gap:10px;">
+                                        <div id="aif-check-grade-badge" style="width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex-shrink:0;"></div>
+                                        <div>
+                                            <div style="font-size:12px;font-weight:700;color:#374151;" id="aif-check-label">Chất lượng nội dung</div>
+                                            <div id="aif-check-score-bar" style="width:160px;height:5px;background:#e2e8f0;border-radius:3px;margin-top:3px;overflow:hidden;">
+                                                <div id="aif-check-score-fill" style="height:100%;border-radius:3px;transition:width 0.5s;"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button type="button" id="btn-smart-check" class="aif-btn aif-btn-outline" style="font-size:12px;padding:6px 12px;">
+                                        <span class="dashicons dashicons-search" style="font-size:13px;width:13px;height:13px;vertical-align:middle;margin-right:3px;"></span>
+                                        Kiểm tra ngay
+                                    </button>
+                                </div>
+                                <div id="aif-check-issues" style="margin-top:8px;display:none;"></div>
+                            </div>
+
+                            <!-- 3 Variations Panel -->
+                            <div id="aif-variations-panel" style="display:none; margin-bottom:14px;">
+                                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                                    <span style="font-size:13px;font-weight:700;color:#1e293b;">🎯 Chọn 1 trong 3 phiên bản AI:</span>
+                                    <button type="button" id="btn-close-variations" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:18px;line-height:1;">&times;</button>
+                                </div>
+                                <div id="aif-variations-list" style="display:flex;flex-direction:column;gap:10px;"></div>
                             </div>
 
                             <div class="aif-form-group">

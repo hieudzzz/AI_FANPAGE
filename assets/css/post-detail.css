@@ -176,9 +176,17 @@
 }
 
 @keyframes aif-pulse {
-    0%   { opacity: 0.6; }
-    50%  { opacity: 1; }
-    100% { opacity: 0.6; }
+    0% {
+        opacity: 0.6;
+    }
+
+    50% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0.6;
+    }
 }
 
 .aif-suggestion-chips {
@@ -207,6 +215,55 @@
     background: var(--aif-primary);
     color: #fff;
     border-color: var(--aif-primary);
+}
+
+/* ── Tone Grid ──────────────────────────────────────────────── */
+.aif-tone-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.aif-tone-btn {
+    padding: 5px 12px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 20px;
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    line-height: 1.5;
+    font-family: inherit;
+}
+
+.aif-tone-btn:hover {
+    border-color: #6366f1;
+    color: #6366f1;
+    background: #eef2ff;
+}
+
+.aif-tone-btn.active {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    border-color: #6366f1;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
+}
+
+/* ── Variation Card ─────────────────────────────────────────── */
+.aif-variation-card {
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.aif-variation-card:hover {
+    border-color: #6366f1 !important;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
+}
+
+/* ── Smart Check bar score fill animation ─────────────────── */
+#aif-check-score-fill {
+    transition: width 0.6s ease;
 }
 
 .aif-media-preview-grid {
@@ -293,11 +350,30 @@
     letter-spacing: 0.5px;
 }
 
-.status-pending    { background: #f1f5f9; color: #64748b; }
-.status-processing { background: #eff6ff; color: #1e40af; }
-.status-future     { background: #fffbeb; color: #92400e; }
-.status-publish    { background: #ecfdf5; color: #065f46; }
-.status-error      { background: #fef2f2; color: #991b1b; }
+.status-pending {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.status-processing {
+    background: #eff6ff;
+    color: #1e40af;
+}
+
+.status-future {
+    background: #fffbeb;
+    color: #92400e;
+}
+
+.status-publish {
+    background: #ecfdf5;
+    color: #065f46;
+}
+
+.status-error {
+    background: #fef2f2;
+    color: #991b1b;
+}
 
 /* Sticky Action Bar */
 .aif-action-bar {
@@ -369,8 +445,13 @@
 }
 
 @keyframes aif-rotate {
-    from { transform: rotate(0deg); }
-    to   { transform: rotate(360deg); }
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* Premium Status Banner */
@@ -401,22 +482,43 @@
     background: linear-gradient(to right, #fffdf5, #fff);
     border-color: #fde68a;
 }
-.aif-status-banner.banner-warning::before  { background: #f59e0b; }
-.aif-status-banner.banner-warning .banner-icon { color: #f59e0b; background: #fef3c7; }
+
+.aif-status-banner.banner-warning::before {
+    background: #f59e0b;
+}
+
+.aif-status-banner.banner-warning .banner-icon {
+    color: #f59e0b;
+    background: #fef3c7;
+}
 
 .aif-status-banner.banner-info {
     background: linear-gradient(to right, #f0f9ff, #fff);
     border-color: #bae6fd;
 }
-.aif-status-banner.banner-info::before  { background: #0ea5e9; }
-.aif-status-banner.banner-info .banner-icon { color: #0ea5e9; background: #e0f2fe; }
+
+.aif-status-banner.banner-info::before {
+    background: #0ea5e9;
+}
+
+.aif-status-banner.banner-info .banner-icon {
+    color: #0ea5e9;
+    background: #e0f2fe;
+}
 
 .aif-status-banner.banner-error {
     background: linear-gradient(to right, #fff5f5, #fff);
     border-color: #fecaca;
 }
-.aif-status-banner.banner-error::before  { background: #ef4444; }
-.aif-status-banner.banner-error .banner-icon { color: #ef4444; background: #fee2e2; }
+
+.aif-status-banner.banner-error::before {
+    background: #ef4444;
+}
+
+.aif-status-banner.banner-error .banner-icon {
+    color: #ef4444;
+    background: #fee2e2;
+}
 
 /* Failed items list inside error banner */
 .aif-failed-list {
@@ -456,8 +558,15 @@
     flex-shrink: 0;
 }
 
-.aif-failed-platform.plat-fb  { background: #e7f0fd; color: #1877F2; }
-.aif-failed-platform.plat-web { background: #d1fae5; color: #059669; }
+.aif-failed-platform.plat-fb {
+    background: #e7f0fd;
+    color: #1877F2;
+}
+
+.aif-failed-platform.plat-web {
+    background: #d1fae5;
+    color: #059669;
+}
 
 .aif-failed-reason {
     font-size: 12.5px;
@@ -505,7 +614,9 @@
     font-size: 24px;
 }
 
-.banner-content { flex: 1; }
+.banner-content {
+    flex: 1;
+}
 
 .banner-title {
     display: block;
