@@ -579,7 +579,7 @@ class AI_Fanpage
         $post_id         = isset($_POST['post_id'])         ? intval($_POST['post_id'])                         : 0;
         $prompt_input    = isset($_POST['prompt'])          ? sanitize_textarea_field($_POST['prompt'])         : '';
         $platform        = isset($_POST['platform'])        ? sanitize_text_field($_POST['platform'])           : 'facebook';
-        $current_content = isset($_POST['current_content']) ? sanitize_textarea_field($_POST['current_content']): '';
+        $current_content = isset($_POST['current_content']) ? sanitize_textarea_field($_POST['current_content']) : '';
         $tone            = isset($_POST['tone'])            ? sanitize_text_field($_POST['tone'])               : '';
 
         $industry = '';
@@ -616,7 +616,7 @@ class AI_Fanpage
         $post_id         = isset($_POST['post_id'])         ? intval($_POST['post_id'])                         : 0;
         $prompt_input    = isset($_POST['prompt'])          ? sanitize_textarea_field($_POST['prompt'])         : '';
         $platform        = isset($_POST['platform'])        ? sanitize_text_field($_POST['platform'])           : 'facebook';
-        $current_content = isset($_POST['current_content']) ? sanitize_textarea_field($_POST['current_content']): '';
+        $current_content = isset($_POST['current_content']) ? sanitize_textarea_field($_POST['current_content']) : '';
         $tone            = isset($_POST['tone'])            ? sanitize_text_field($_POST['tone'])               : '';
 
         if (empty($prompt_input) && empty($current_content)) {
@@ -735,7 +735,10 @@ class AI_Fanpage
         $cta_signals = ['comment', 'bình luận', 'chia sẻ', 'share', 'like', 'tag', 'liên hệ', 'nhắn tin', 'inbox', 'dm', 'đặt hàng', 'mua', 'xem thêm'];
         $has_cta = false;
         foreach ($cta_signals as $cta) {
-            if (mb_strpos($content_lower, $cta) !== false) { $has_cta = true; break; }
+            if (mb_strpos($content_lower, $cta) !== false) {
+                $has_cta = true;
+                break;
+            }
         }
         if (!$has_cta) {
             $issues[] = ['type' => 'info', 'msg' => 'Bài viết chưa có CTA (Call to Action). Thêm lời kêu gọi hành động để tăng tương tác.'];
@@ -757,10 +760,23 @@ class AI_Fanpage
         $score = max(0, $score);
 
         // Xếp loại
-        if ($score >= 85)      { $grade = 'A'; $grade_label = 'Tốt'; $grade_color = '#059669'; }
-        elseif ($score >= 65)  { $grade = 'B'; $grade_label = 'Khá'; $grade_color = '#0284c7'; }
-        elseif ($score >= 45)  { $grade = 'C'; $grade_label = 'Trung bình'; $grade_color = '#d97706'; }
-        else                   { $grade = 'D'; $grade_label = 'Yếu'; $grade_color = '#ef4444'; }
+        if ($score >= 85) {
+            $grade = 'A';
+            $grade_label = 'Tốt';
+            $grade_color = '#059669';
+        } elseif ($score >= 65) {
+            $grade = 'B';
+            $grade_label = 'Khá';
+            $grade_color = '#0284c7';
+        } elseif ($score >= 45) {
+            $grade = 'C';
+            $grade_label = 'Trung bình';
+            $grade_color = '#d97706';
+        } else {
+            $grade = 'D';
+            $grade_label = 'Yếu';
+            $grade_color = '#ef4444';
+        }
 
         wp_send_json_success([
             'score'       => $score,
@@ -1141,19 +1157,19 @@ class AI_Fanpage
     public function render_menu_badge_script()
     {
         $unread = $this->get_unread_chat_count();
-        ?>
+?>
         <script>
-        (function($) {
-            var unread = <?php echo $unread; ?>;
-            var $link  = $('#adminmenu a[href*="page=ai-fanpage-chatbot"]').first();
-            if (!$link.length) return;
-            $link.find('.aif-menu-badge-chat').remove();
-            if (unread > 0) {
-                $link.append('<span class="aif-menu-badge aif-menu-badge-chat">' + unread + '</span>');
-            }
-        })(jQuery);
+            (function($) {
+                var unread = <?php echo $unread; ?>;
+                var $link = $('#adminmenu a[href*="page=ai-fanpage-chatbot"]').first();
+                if (!$link.length) return;
+                $link.find('.aif-menu-badge-chat').remove();
+                if (unread > 0) {
+                    $link.append('<span class="aif-menu-badge aif-menu-badge-chat">' + unread + '</span>');
+                }
+            })(jQuery);
         </script>
-        <?php
+<?php
     }
 
     public function register_admin_menu()
@@ -1337,6 +1353,20 @@ class AI_Fanpage
         wp_enqueue_script('aif-toast-script',  AIF_URL . 'assets/js/aif-toast.js',    [], filemtime(AIF_PATH . 'assets/js/aif-toast.js'),    true);
         wp_enqueue_script('aif-admin-script',  AIF_URL . 'assets/js/admin-script.js', ['jquery', 'aif-toast-script'], filemtime(AIF_PATH . 'assets/js/admin-script.js'), true);
         wp_enqueue_script('aif-chat-bot',      AIF_URL . 'assets/js/chat-bot.js',     ['jquery', 'aif-toast-script'], filemtime(AIF_PATH . 'assets/js/chat-bot.js'),     true);
+
+        // Posts list page only
+        if (isset($_GET['page']) && $_GET['page'] === 'ai-fanpage-posts') {
+            wp_enqueue_style('aif-posts-list-style', AIF_URL . 'assets/css/posts-list.css', [], filemtime(AIF_PATH . 'assets/css/posts-list.css'));
+            wp_enqueue_script('aif-posts-list-script', AIF_URL . 'assets/js/posts-list.js', ['jquery', 'aif-toast-script'], filemtime(AIF_PATH . 'assets/js/posts-list.js'), true);
+            wp_add_inline_script(
+                'aif-posts-list-script',
+                'if (typeof aif_ajax !== "undefined") {' .
+                    '    aif_ajax.status_labels  = ' . wp_json_encode(AIF_Status::js_labels()) . ';' .
+                    '    aif_ajax.status_classes = ' . wp_json_encode(AIF_Status::js_badge_classes()) . ';' .
+                    '}',
+                'before'
+            );
+        }
 
         // Media Library page only
         if (isset($_GET['page']) && $_GET['page'] === 'ai-fanpage-media') {
