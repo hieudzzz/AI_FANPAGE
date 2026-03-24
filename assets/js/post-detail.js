@@ -645,37 +645,71 @@ jQuery(document).ready(function ($) {
     });
 
     // =========================================================
-    // 8. Validate before Done
+    // 8. Validate before Done → custom confirm modal
     // =========================================================
     $('button[name="aif_status_action"]').on('click', function (e) {
         if ($(this).val() !== 'done') return;
+        e.preventDefault();
 
         const title   = $('#aif-title').val().trim();
         const content = $('#aif-caption').val().trim();
 
         if (!title) {
-            e.preventDefault();
-            if (window.AIF_Toast) AIF_Toast.show('❌ Tiêu đề không được để trống khi hoàn tất!', 'error');
-            else alert('Tiêu đề không được để trống!');
+            if (window.AIF_Toast) AIF_Toast.show('Tiêu đề không được để trống khi hoàn tất!', 'error');
             $('#aif-title').focus();
-            return false;
+            return;
         }
         if (!content) {
-            e.preventDefault();
-            if (window.AIF_Toast) AIF_Toast.show('❌ Nội dung không được để trống khi hoàn tất!', 'error');
-            else alert('Nội dung không được để trống!');
+            if (window.AIF_Toast) AIF_Toast.show('Nội dung không được để trống khi hoàn tất!', 'error');
             $('#aif-caption').focus();
-            return false;
+            return;
         }
 
         const checkedPages   = $('input[name="aif_target_pages[]"]:checked').length;
         const checkedWebsite = $('input[name="aif_target_website"]:checked').length;
         if (checkedPages === 0 && checkedWebsite === 0) {
-            e.preventDefault();
-            if (window.AIF_Toast) AIF_Toast.show('❌ Vui lòng chọn ít nhất một nơi đăng bài (Website hoặc Fanpage)!', 'error');
-            else alert('Vui lòng chọn ít nhất một nơi đăng bài!');
-            return false;
+            if (window.AIF_Toast) AIF_Toast.show('Vui lòng chọn ít nhất một nơi đăng bài (Website hoặc Fanpage)!', 'error');
+            return;
         }
+
+        // ── Tất cả validate OK → hiện custom confirm modal ──────────────────
+        const schedule = $('input[name="aif_schedule"]').val();
+        const targets  = [];
+        $('input[name="aif_target_website"]:checked').each(function () { targets.push('🌐 Website'); });
+        $('input[name="aif_target_pages[]"]:checked').each(function () {
+            targets.push('📘 ' + $(this).closest('label').text().trim());
+        });
+
+        let summaryHtml = '<div style="margin-bottom:6px;"><b>📝 Tiêu đề:</b> ' + $('<div>').text(title.length > 60 ? title.substring(0, 60) + '…' : title).html() + '</div>';
+        summaryHtml += '<div style="margin-bottom:6px;"><b>📍 Đăng lên:</b> ' + targets.join(', ') + '</div>';
+        if (schedule) {
+            const dt = new Date(schedule);
+            const formatted = dt.toLocaleDateString('vi-VN', { day:'2-digit', month:'2-digit', year:'numeric' })
+                             + ' ' + dt.toLocaleTimeString('vi-VN', { hour:'2-digit', minute:'2-digit' });
+            summaryHtml += '<div><b>🕐 Lịch đăng:</b> ' + formatted + '</div>';
+        } else {
+            summaryHtml += '<div><b>🕐 Lịch đăng:</b> <span style="color:#059669;font-weight:600;">Đăng ngay</span></div>';
+        }
+
+        $('#aif-confirm-done-summary').html(summaryHtml);
+        $('#aif-confirm-done-modal').css('display', 'flex');
+    });
+
+    // ── Đóng modal xác nhận ──────────────────────────────────────────────────
+    $('#aif-confirm-done-close, #aif-confirm-done-cancel').on('click', function () {
+        $('#aif-confirm-done-modal').css('display', 'none');
+    });
+    $('#aif-confirm-done-modal').on('click', function (e) {
+        if (e.target === this) $(this).css('display', 'none');
+    });
+
+    // ── Bấm "Xác nhận đăng" → thêm hidden input rồi submit form ────────────
+    $('#aif-confirm-done-submit').on('click', function () {
+        $('#aif-confirm-done-modal').css('display', 'none');
+        const $form = $('#aif-post-form');
+        $form.find('#_aif_done_trigger').remove();
+        $form.append('<input type="hidden" id="_aif_done_trigger" name="aif_status_action" value="done">');
+        $form.submit();
     });
 
     // =========================================================

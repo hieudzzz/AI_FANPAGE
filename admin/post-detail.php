@@ -126,7 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && check_admin_referer('aif_save_post'
             if (empty($targets_data)) $errors[] = 'Vui lòng chọn ít nhất một nơi đăng bài (Fanpage hoặc Website).';
 
             if (!empty($errors)) {
-                $_SESSION['aif_message'] = '❌ Lỗi: ' . implode(' ', $errors);
+                $_SESSION['aif_message'] = 'Lỗi: ' . implode(' ', $errors);
                 // Redirect back to same page to show error
                 $redirect_url = admin_url('admin.php?page=ai-fanpage-post-detail' . ($is_new ? '&action=new' : '&id=' . $post_id));
                 echo "<script>window.location.href='$redirect_url';</script>";
@@ -218,7 +218,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && check_admin_referer('aif_save_post'
             exit;
         } else {
             // Handle save error
-            $_SESSION['aif_message'] = '❌ Lỗi: Không thể lưu bài viết vào Database.';
+            $_SESSION['aif_message'] = 'Lỗi: Không thể lưu bài viết vào Database.';
         }
     } // end if (!$lock_error_message)
 }
@@ -276,17 +276,34 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($json_data) && isset($json
     </div>
 
     <?php
+    // Thu thập tất cả thông báo cần hiển thị
+    $aif_toast_messages = [];
+
     if (isset($_GET['aif_msg']) && $_GET['aif_msg'] === 'saved') {
-        echo '<div class="notice notice-success is-dismissible" style="border-radius: 8px; border-left-width: 4px;"><p>✅ Đã lưu thay đổi bài viết thành công!</p></div>';
+        $aif_toast_messages[] = ['msg' => 'Đã lưu thay đổi bài viết thành công!', 'type' => 'success'];
     }
     if (isset($_SESSION['aif_message'])) {
-        $msg = $_SESSION['aif_message'];
-        $is_error = (strpos($msg, 'Lỗi') !== false || strpos($msg, '❌') !== false);
-        $notice_class = $is_error ? 'notice-error' : 'notice-info';
-        echo '<div class="notice ' . $notice_class . ' is-dismissible" style="border-radius: 8px; border-left-width: 4px;"><p>' . esc_html($msg) . '</p></div>';
+        $msg  = $_SESSION['aif_message'];
+        $type = (strpos($msg, 'Lỗi') !== false || strpos($msg, '') !== false) ? 'error' : 'success';
+        $aif_toast_messages[] = ['msg' => $msg, 'type' => $type];
         unset($_SESSION['aif_message']);
     }
+    if (!empty($aif_toast_messages)):
     ?>
+    <script>
+    (function waitForToast() {
+        if (window.AIF_Toast) {
+            <?php foreach ($aif_toast_messages as $i => $t): ?>
+            setTimeout(function() {
+                AIF_Toast.show(<?php echo json_encode($t['msg']); ?>, <?php echo json_encode($t['type']); ?>);
+            }, <?php echo $i * 600; ?>);
+            <?php endforeach; ?>
+        } else {
+            setTimeout(waitForToast, 80);
+        }
+    })();
+    </script>
+    <?php endif; ?>
 
     <?php if ($is_locked && $lock_reason === 'queued'): ?>
         <div class="aif-status-banner banner-warning">
@@ -684,14 +701,45 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($json_data) && isset($json
                     <span class="dashicons dashicons-saved"></span> Lưu nháp
                 </button>
                 <?php if ($current_status !== 'Done' && $current_status !== 'Posted successfully'): ?>
-                    <button type="submit" name="aif_status_action" value="done" class="aif-btn aif-btn-primary"
-                        onclick="return confirm('Hoàn thành nội dung và đưa vào lịch đăng?');">
+                    <button type="submit" name="aif_status_action" value="done" class="aif-btn aif-btn-primary">
                         Hoàn tất & Đăng
                     </button>
                 <?php endif; ?>
             </div>
         </div>
     </form>
+
+    <!-- Confirm Done Modal -->
+    <div id="aif-confirm-done-modal" style="display:none; position:fixed; inset:0; z-index:99998; background:rgba(15,23,42,0.55); backdrop-filter:blur(4px); align-items:center; justify-content:center;">
+        <div style="background:#fff; border-radius:16px; width:100%; max-width:420px; margin:20px; overflow:hidden; box-shadow:0 25px 60px rgba(0,0,0,0.25);">
+            <!-- Header -->
+            <div style="padding:20px 24px; background:linear-gradient(135deg,#6366f1,#4f46e5); position:relative;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:40px; height:40px; background:rgba(255,255,255,0.2); border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                        <span class="dashicons dashicons-cloud-upload" style="color:#fff; font-size:20px; width:20px; height:20px;"></span>
+                    </div>
+                    <div>
+                        <h3 style="margin:0; font-size:15px; font-weight:800; color:#fff;">Xác nhận hoàn tất & đăng bài</h3>
+                        <p style="margin:3px 0 0; font-size:12px; color:rgba(255,255,255,0.8);">Bài viết sẽ được chuyển sang hàng chờ đăng</p>
+                    </div>
+                </div>
+                <button type="button" id="aif-confirm-done-close" style="position:absolute; top:14px; right:16px; background:rgba(255,255,255,0.2); border:none; color:#fff; width:28px; height:28px; border-radius:6px; cursor:pointer; font-size:16px; line-height:28px; text-align:center;">&times;</button>
+            </div>
+            <!-- Body -->
+            <div style="padding:20px 24px;">
+                <div id="aif-confirm-done-summary" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px; font-size:13px; color:#374151; line-height:1.7;"></div>
+                <p style="font-size:12px; color:#64748b; margin:12px 0 0;">Sau khi xác nhận, bạn sẽ không thể chỉnh sửa nội dung cho đến khi hủy hàng chờ.</p>
+            </div>
+            <!-- Footer -->
+            <div style="padding:14px 24px; border-top:1px solid #f1f5f9; display:flex; justify-content:flex-end; gap:10px; background:#fafafa;">
+                <button type="button" id="aif-confirm-done-cancel" class="aif-btn aif-btn-outline">Hủy</button>
+                <button type="button" id="aif-confirm-done-submit" class="aif-btn aif-btn-primary">
+                    <span class="dashicons dashicons-cloud-upload" style="font-size:15px; width:15px; height:15px;"></span>
+                    Xác nhận đăng
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Media Selection Modal -->
     <div id="aif-media-modal"
