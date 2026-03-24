@@ -487,10 +487,133 @@ jQuery(document).ready(function ($) {
     // =========================================================
 
     // ── Tone selector ─────────────────────────────────────────
-    $(document).on('click', '.aif-tone-btn', function () {
+    // Click chọn tone (bỏ qua nếu click vào nút xóa hoặc nút thêm)
+    $(document).on('click', '.aif-tone-btn', function (e) {
+        if ($(e.target).hasClass('aif-tone-custom-del')) return; // để handler xóa xử lý
+        if ($(this).hasClass('aif-tone-add-btn')) return;        // để handler thêm xử lý
         $('.aif-tone-btn').removeClass('active');
         $(this).addClass('active');
         $('#aif-tone-input').val($(this).data('tone'));
+    });
+
+    // ── Tooltip hover phong cách viết ─────────────────────────
+    const $toneTooltip = $('#aif-tone-tooltip');
+    $(document).on('mouseenter', '.aif-tone-btn:not(.aif-tone-add-btn)', function () {
+        const desc  = $(this).data('desc') || '';
+        const label = $(this).data('label') || $(this).text().trim();
+        if (!desc) return;
+        $('#aif-tone-tooltip-label').text(label);
+        $('#aif-tone-tooltip-desc').text(desc);
+        $toneTooltip.show();
+        _positionToneTooltip($(this));
+    }).on('mousemove', '.aif-tone-btn:not(.aif-tone-add-btn)', function () {
+        _positionToneTooltip($(this));
+    }).on('mouseleave', '.aif-tone-btn:not(.aif-tone-add-btn)', function () {
+        $toneTooltip.hide();
+    });
+
+    function _positionToneTooltip($btn) {
+        const r   = $btn[0].getBoundingClientRect();
+        const tw  = $toneTooltip.outerWidth()  || 240;
+        const th  = $toneTooltip.outerHeight() || 80;
+        let left  = r.left + r.width / 2 - tw / 2;
+        let top   = r.top  - th - 10;
+        if (left < 8) left = 8;
+        if (left + tw > window.innerWidth - 8) left = window.innerWidth - tw - 8;
+        if (top  < 8) top  = r.bottom + 10; // flip xuống dưới nếu chạm đỉnh
+        $toneTooltip.css({ left: left + 'px', top: top + 'px' });
+    }
+
+    // ── Modal thêm tone mới ────────────────────────────────────
+    function openToneModal() {
+        $('#tone-modal-label').val('');
+        $('#tone-modal-desc').val('');
+        $('#tone-modal-style').val('');
+        $('#aif-tone-modal').css('display', 'flex');
+        setTimeout(() => $('#tone-modal-label').focus(), 100);
+    }
+    function closeToneModal() { $('#aif-tone-modal').css('display', 'none'); }
+
+    $(document).on('click', '#aif-tone-add-btn', openToneModal);
+    $(document).on('click', '#aif-tone-modal-close, #aif-tone-modal-cancel', closeToneModal);
+    $('#aif-tone-modal').on('click', function (e) { if (e.target === this) closeToneModal(); });
+
+    // Focus style cho inputs trong modal
+    $(document).on('focus', '#tone-modal-label, #tone-modal-desc, #tone-modal-style', function () {
+        $(this).css('border-color', '#6366f1');
+    }).on('blur', '#tone-modal-label, #tone-modal-desc, #tone-modal-style', function () {
+        $(this).css('border-color', '#e2e8f0');
+    });
+
+    // Lưu tone mới
+    $(document).on('click', '#aif-tone-modal-save', function () {
+        const label = $('#tone-modal-label').val().trim();
+        const desc  = $('#tone-modal-desc').val().trim();
+        const style = $('#tone-modal-style').val().trim();
+
+        if (!label) {
+            if (window.AIF_Toast) AIF_Toast.show('Vui lòng nhập tên phong cách.', 'error');
+            $('#tone-modal-label').focus().css('border-color', '#ef4444');
+            return;
+        }
+        if (!style) {
+            if (window.AIF_Toast) AIF_Toast.show('Vui lòng nhập hướng dẫn viết cho AI.', 'error');
+            $('#tone-modal-style').focus().css('border-color', '#ef4444');
+            return;
+        }
+
+        const $btn  = $(this).prop('disabled', true);
+        const orig  = $btn.html();
+        $btn.html('<span class="dashicons dashicons-update" style="font-size:14px;width:14px;height:14px;display:inline-block;animation:aif-rotate .7s linear infinite;"></span> Đang lưu...');
+
+        $.post(ajaxUrl, { action: 'aif_save_custom_tone', nonce, label, desc, style }, function (res) {
+            $btn.prop('disabled', false).html(orig);
+            if (!res.success) {
+                if (window.AIF_Toast) AIF_Toast.show('Lỗi: ' + res.data, 'error');
+                return;
+            }
+            closeToneModal();
+            if (window.AIF_Toast) AIF_Toast.show('Đã thêm phong cách "' + label + '"!', 'success');
+
+            // Chèn button mới vào grid trước nút "Thêm mới"
+            const key  = res.data.key;
+            const $new = $(`<button type="button"
+                class="aif-tone-btn aif-tone-custom"
+                data-tone="${key}"
+                data-desc="${$('<div>').text(desc).html()}"
+                data-custom="1"
+                data-label="${$('<div>').text(label).html()}">
+                ${$('<div>').text(label).html()}
+                <span class="aif-tone-custom-del" data-key="${key}" title="Xóa phong cách này">×</span>
+            </button>`);
+            $('#aif-tone-add-btn').before($new);
+
+            // Tự chọn tone vừa tạo
+            $('.aif-tone-btn').removeClass('active');
+            $new.addClass('active');
+            $('#aif-tone-input').val(key);
+        });
+    });
+
+    // Xóa custom tone
+    $(document).on('click', '.aif-tone-custom-del', function (e) {
+        e.stopPropagation();
+        $toneTooltip.hide();
+        const key   = $(this).data('key');
+        const label = $(this).closest('.aif-tone-btn').data('label') || '';
+        if (!confirm('Xóa phong cách "' + label + '"?\nHành động này không thể hoàn tác.')) return;
+
+        const $btn = $(this).closest('.aif-tone-btn');
+        $.post(ajaxUrl, { action: 'aif_delete_custom_tone', nonce, key }, function (res) {
+            if (res.success) {
+                // Nếu đang chọn tone này thì reset
+                if ($('#aif-tone-input').val() === key) $('#aif-tone-input').val('');
+                $btn.remove();
+                if (window.AIF_Toast) AIF_Toast.show('Đã xóa phong cách.', 'success');
+            } else {
+                if (window.AIF_Toast) AIF_Toast.show('Lỗi xóa: ' + res.data, 'error');
+            }
+        });
     });
 
     // Helper lấy tone đang chọn

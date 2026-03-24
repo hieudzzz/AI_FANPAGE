@@ -251,7 +251,64 @@
     box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
 }
 
-/* ── Variation Card ─────────────────────────────────────────── */
+/* ── Tone: nút thêm mới ─────────────────────────────────────── */
+.aif-tone-add-btn {
+    border-style: dashed !important;
+    border-color: #c7d2fe !important;
+    color: #6366f1 !important;
+    background: #f0f4ff !important;
+}
+.aif-tone-add-btn:hover {
+    background: #e0e7ff !important;
+    border-color: #6366f1 !important;
+}
+
+/* ── Tone: custom (do người dùng thêm) ──────────────────────── */
+.aif-tone-custom {
+    border-color: #d1fae5;
+    background: #f0fdf4;
+    color: #059669;
+    position: relative;
+    padding-right: 28px !important;
+}
+.aif-tone-custom:hover {
+    border-color: #059669 !important;
+    color: #059669 !important;
+    background: #dcfce7 !important;
+}
+.aif-tone-custom.active {
+    background: linear-gradient(135deg, #059669, #10b981) !important;
+    border-color: #059669 !important;
+    color: #fff !important;
+    box-shadow: 0 2px 8px rgba(5,150,105,0.35) !important;
+}
+
+/* ── Nút x xóa custom tone ──────────────────────────────────── */
+.aif-tone-custom-del {
+    position: absolute;
+    top: 50%;
+    right: 7px;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    line-height: 16px;
+    text-align: center;
+    border-radius: 50%;
+    font-size: 13px;
+    font-weight: 700;
+    color: #6ee7b7;
+    transition: background .15s, color .15s;
+    cursor: pointer;
+}
+.aif-tone-custom-del:hover {
+    background: rgba(255,255,255,0.35);
+    color: #fff;
+}
+.aif-tone-custom.active .aif-tone-custom-del {
+    color: rgba(255,255,255,0.7);
+}
+
+
 .aif-variation-card {
     transition: border-color 0.15s, box-shadow 0.15s;
 }

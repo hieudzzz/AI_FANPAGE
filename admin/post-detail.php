@@ -501,16 +501,72 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($json_data) && isset($json
                                     </label>
                                     <div class="aif-tone-grid" id="aif-tone-grid">
                                         <?php
-                                        $tones = AIF_AI_Generator::get_tones();
+                                        $tones = AIF_AI_Generator::get_all_tones();
                                         $current_tone = $post ? ($post->tone ?? '') : '';
                                         foreach ($tones as $key => $info):
+                                            $is_custom = !empty($info['custom']);
                                         ?>
-                                        <button type="button" class="aif-tone-btn <?php echo ($current_tone === $key) ? 'active' : ''; ?>" data-tone="<?php echo esc_attr($key); ?>">
+                                        <button type="button"
+                                            class="aif-tone-btn <?php echo ($current_tone === $key) ? 'active' : ''; ?> <?php echo $is_custom ? 'aif-tone-custom' : ''; ?>"
+                                            data-tone="<?php echo esc_attr($key); ?>"
+                                            data-desc="<?php echo esc_attr($info['desc'] ?? ''); ?>"
+                                            data-custom="<?php echo $is_custom ? '1' : '0'; ?>"
+                                            data-label="<?php echo esc_attr($info['label']); ?>">
                                             <?php echo esc_html($info['label']); ?>
+                                            <?php if ($is_custom): ?><span class="aif-tone-custom-del" data-key="<?php echo esc_attr($key); ?>" title="Xóa phong cách này">×</span><?php endif; ?>
                                         </button>
                                         <?php endforeach; ?>
+                                        <!-- Button thêm mới -->
+                                        <button type="button" class="aif-tone-btn aif-tone-add-btn" id="aif-tone-add-btn" title="Thêm phong cách viết mới">
+                                            <span class="dashicons dashicons-plus-alt2" style="font-size:13px;width:13px;height:13px;vertical-align:middle;margin-right:3px;"></span> Thêm mới
+                                        </button>
                                     </div>
                                     <input type="hidden" name="aif_tone" id="aif-tone-input" value="<?php echo esc_attr($current_tone); ?>">
+                                </div>
+
+                                <!-- Tooltip phong cách viết (dùng chung) -->
+                                <div id="aif-tone-tooltip" style="display:none;position:fixed;z-index:99999;max-width:240px;background:#1e293b;color:#f1f5f9;padding:10px 14px;border-radius:10px;font-size:12px;line-height:1.6;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,0.25);">
+                                    <div id="aif-tone-tooltip-label" style="font-weight:700;font-size:13px;margin-bottom:4px;color:#fff;"></div>
+                                    <div id="aif-tone-tooltip-desc"></div>
+                                    <div style="position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);width:12px;height:12px;background:#1e293b;clip-path:polygon(0 0,100% 0,50% 100%);"></div>
+                                </div>
+
+                                <!-- Modal thêm phong cách viết mới -->
+                                <div id="aif-tone-modal" style="display:none;position:fixed;inset:0;z-index:999999;background:rgba(15,23,42,0.55);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+                                    <div style="background:#fff;border-radius:16px;width:100%;max-width:440px;margin:20px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
+                                        <div style="padding:18px 22px;background:linear-gradient(135deg,#6366f1,#4f46e5);display:flex;align-items:center;gap:12px;position:relative;">
+                                            <div style="width:36px;height:36px;background:rgba(255,255,255,0.2);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                                <span class="dashicons dashicons-art" style="color:#fff;font-size:18px;width:18px;height:18px;"></span>
+                                            </div>
+                                            <div>
+                                                <h3 style="margin:0;font-size:15px;font-weight:800;color:#fff;">Thêm phong cách viết</h3>
+                                                <p style="margin:2px 0 0;font-size:11px;color:rgba(255,255,255,0.8);">Tùy chỉnh phong cách AI theo nhu cầu của bạn</p>
+                                            </div>
+                                            <button type="button" id="aif-tone-modal-close" style="position:absolute;right:14px;top:14px;background:rgba(255,255,255,0.2);border:none;color:#fff;width:28px;height:28px;border-radius:7px;cursor:pointer;font-size:18px;line-height:28px;text-align:center;">&times;</button>
+                                        </div>
+                                        <div style="padding:22px;">
+                                            <div style="margin-bottom:16px;">
+                                                <label style="display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:6px;">Tên phong cách <span style="color:#ef4444;">*</span></label>
+                                                <input type="text" id="tone-modal-label" placeholder="VD: 🌟 Truyền cảm hứng" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;outline:none;transition:border-color .2s;">
+                                                <p style="font-size:11px;color:#94a3b8;margin:4px 0 0;">Nên thêm emoji để dễ nhận biết.</p>
+                                            </div>
+                                            <div style="margin-bottom:16px;">
+                                                <label style="display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:6px;">Mô tả ngắn <span style="color:#94a3b8;font-weight:400;">(hiện khi hover)</span></label>
+                                                <input type="text" id="tone-modal-desc" placeholder="VD: Truyền động lực, kể câu chuyện vươn lên..." style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;outline:none;transition:border-color .2s;">
+                                            </div>
+                                            <div style="margin-bottom:8px;">
+                                                <label style="display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:6px;">Hướng dẫn viết cho AI <span style="color:#ef4444;">*</span></label>
+                                                <textarea id="tone-modal-style" rows="4" placeholder="VD: Giọng văn truyền cảm hứng mạnh mẽ, dùng câu chuyện thực tế, kêu gọi hành động tích cực. Ngôn ngữ tích cực, đầy năng lượng..." style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;outline:none;resize:vertical;line-height:1.6;transition:border-color .2s;"></textarea>
+                                                <p style="font-size:11px;color:#94a3b8;margin:4px 0 0;">AI sẽ đọc hướng dẫn này để viết đúng phong cách của bạn.</p>
+                                            </div>
+                                        </div>
+                                        <div style="padding:14px 22px;border-top:1px solid #f1f5f9;display:flex;justify-content:flex-end;gap:10px;background:#fafafa;">
+                                            <button type="button" id="aif-tone-modal-cancel" class="aif-btn aif-btn-outline">Hủy</button>
+                                            <button type="button" id="aif-tone-modal-save" class="aif-btn aif-btn-primary">
+                                                <span class="dashicons dashicons-saved" style="font-size:14px;width:14px;height:14px;"></span> Lưu phong cách
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div class="aif-form-group" style="margin-bottom: 12px;">

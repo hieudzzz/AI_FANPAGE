@@ -72,6 +72,8 @@ class AI_Fanpage
         add_action('wp_ajax_aif_import_gsheet', [$this, 'handle_import_gsheet']);
         add_action('wp_ajax_aif_generate_content', [$this, 'handle_generate_content']);
         add_action('wp_ajax_aif_generate_variations', [$this, 'handle_generate_variations']);
+        add_action('wp_ajax_aif_save_custom_tone', [$this, 'handle_save_custom_tone']);
+        add_action('wp_ajax_aif_delete_custom_tone', [$this, 'handle_delete_custom_tone']);
         add_action('wp_ajax_aif_smart_check', [$this, 'handle_smart_check']);
         add_action('wp_ajax_aif_bulk_process_item', [$this, 'handle_bulk_process_item']);
         add_action('wp_ajax_aif_get_post_details', [$this, 'handle_get_post_details']);
@@ -631,6 +633,49 @@ class AI_Fanpage
         }
 
         wp_send_json_success(['variations' => $variations]);
+    }
+
+    // ── Lưu custom tone ──────────────────────────────────────────────────────
+    public function handle_save_custom_tone()
+    {
+        check_ajax_referer('aif_nonce', 'nonce');
+        if (!current_user_can('manage_options')) wp_send_json_error('Không có quyền.');
+
+        $label = sanitize_text_field(wp_unslash($_POST['label'] ?? ''));
+        $desc  = sanitize_textarea_field(wp_unslash($_POST['desc']  ?? ''));
+        $style = sanitize_textarea_field(wp_unslash($_POST['style'] ?? ''));
+        $key   = isset($_POST['key']) ? sanitize_key($_POST['key']) : '';
+
+        if (empty($label) || empty($style)) wp_send_json_error('Vui lòng điền đầy đủ tên và hướng dẫn phong cách.');
+
+        // Tạo key từ label nếu chưa có (khi thêm mới)
+        if (!$key) {
+            $key = 'custom_' . sanitize_key(preg_replace('/[^a-z0-9]/ui', '_', mb_strtolower($label))) . '_' . substr(md5(microtime()), 0, 4);
+        }
+
+        $customs = get_option('aif_custom_tones', []);
+        if (!is_array($customs)) $customs = [];
+        $customs[$key] = ['label' => $label, 'desc' => $desc, 'style' => $style, 'custom' => true];
+        update_option('aif_custom_tones', $customs);
+
+        wp_send_json_success(['key' => $key, 'label' => $label, 'desc' => $desc]);
+    }
+
+    // ── Xóa custom tone ──────────────────────────────────────────────────────
+    public function handle_delete_custom_tone()
+    {
+        check_ajax_referer('aif_nonce', 'nonce');
+        if (!current_user_can('manage_options')) wp_send_json_error('Không có quyền.');
+
+        $key = sanitize_key($_POST['key'] ?? '');
+        if (!$key) wp_send_json_error('Key không hợp lệ.');
+
+        $customs = get_option('aif_custom_tones', []);
+        if (!is_array($customs) || !isset($customs[$key])) wp_send_json_error('Không tìm thấy tone.');
+
+        unset($customs[$key]);
+        update_option('aif_custom_tones', $customs);
+        wp_send_json_success();
     }
 
     // ── Smart Check caption ──────────────────────────────────────────────────

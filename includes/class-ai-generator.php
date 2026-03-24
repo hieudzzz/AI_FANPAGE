@@ -16,20 +16,28 @@ class AIF_AI_Generator
      * Automatically uses the AI provider configured in Settings.
      */
     /**
-     * Tone definitions: key => [label, phong_cach_instruction]
+     * Tone definitions: key => [label, desc, style]
      */
     private static $tone_map = [
-        'ban_hang'      => ['label' => '🛒 Bán hàng',       'style' => 'Giọng văn bán hàng mạnh mẽ, tập trung vào lợi ích sản phẩm, tạo cảm giác cấp bách, CTA rõ ràng. Dùng nhiều dấu chấm than và bullet point.'],
-        'viral'         => ['label' => '🔥 Viral',           'style' => 'Giọng văn gây sốc, kích thích tò mò, dùng sự thật ít người biết, đặt câu hỏi khiêu khích. Ngắn gọn, mạnh mẽ, chia sẻ nhiều.'],
-        'kien_thuc'     => ['label' => '📚 Kiến thức',       'style' => 'Giọng văn chuyên gia, uy tín, có số liệu và dẫn chứng cụ thể. Phân tích sâu, cấu trúc rõ ràng, cung cấp giá trị thực.'],
-        'storytelling'  => ['label' => '📖 Storytelling',    'style' => 'Kể câu chuyện cảm xúc, có nhân vật, có diễn biến và bài học. Giọng văn ấm áp, chân thực, kéo người đọc vào câu chuyện.'],
-        'hai_huoc'      => ['label' => '😄 Hài hước',        'style' => 'Giọng văn vui vẻ, hài hước, dùng sự so sánh bất ngờ và meme. Nhẹ nhàng nhưng có điểm nhấn, khiến người đọc mỉm cười.'],
-        'chuyen_nghiep' => ['label' => '💼 Chuyên nghiệp',  'style' => 'Giọng văn chuyên nghiệp, lịch sự, phù hợp môi trường doanh nghiệp. Ngôn ngữ trau chuốt, thuyết phục, đáng tin cậy.'],
+        'ban_hang'      => ['label' => '🛒 Bán hàng',      'desc' => 'Tập trung vào lợi ích sản phẩm, tạo cảm giác cấp bách. Dùng nhiều dấu chấm than, bullet point và CTA mạnh mẽ.',         'style' => 'Giọng văn bán hàng mạnh mẽ, tập trung vào lợi ích sản phẩm, tạo cảm giác cấp bách, CTA rõ ràng. Dùng nhiều dấu chấm than và bullet point.'],
+        'viral'         => ['label' => '🔥 Viral',          'desc' => 'Gây sốc, kích thích tò mò bằng sự thật ít người biết. Ngắn gọn, mạnh mẽ — người đọc muốn chia sẻ ngay.',               'style' => 'Giọng văn gây sốc, kích thích tò mò, dùng sự thật ít người biết, đặt câu hỏi khiêu khích. Ngắn gọn, mạnh mẽ, chia sẻ nhiều.'],
+        'kien_thuc'     => ['label' => '📚 Kiến thức',      'desc' => 'Giọng chuyên gia, có số liệu & dẫn chứng cụ thể. Phân tích sâu, cấu trúc rõ ràng, cung cấp giá trị thực sự.',           'style' => 'Giọng văn chuyên gia, uy tín, có số liệu và dẫn chứng cụ thể. Phân tích sâu, cấu trúc rõ ràng, cung cấp giá trị thực.'],
+        'storytelling'  => ['label' => '📖 Storytelling',   'desc' => 'Kể câu chuyện có nhân vật, diễn biến và bài học. Giọng ấm áp, chân thực — kéo người đọc vào câu chuyện.',               'style' => 'Kể câu chuyện cảm xúc, có nhân vật, có diễn biến và bài học. Giọng văn ấm áp, chân thực, kéo người đọc vào câu chuyện.'],
+        'hai_huoc'      => ['label' => '😄 Hài hước',       'desc' => 'Vui vẻ, hài hước với so sánh bất ngờ. Nhẹ nhàng nhưng có điểm nhấn — khiến người đọc mỉm cười và nhớ lâu.',            'style' => 'Giọng văn vui vẻ, hài hước, dùng sự so sánh bất ngờ và meme. Nhẹ nhàng nhưng có điểm nhấn, khiến người đọc mỉm cười.'],
+        'chuyen_nghiep' => ['label' => '💼 Chuyên nghiệp', 'desc' => 'Lịch sự, trau chuốt — phù hợp môi trường doanh nghiệp. Thuyết phục, đáng tin cậy, không dùng ngôn ngữ thông tục.',    'style' => 'Giọng văn chuyên nghiệp, lịch sự, phù hợp môi trường doanh nghiệp. Ngôn ngữ trau chuốt, thuyết phục, đáng tin cậy.'],
     ];
 
+    /** Lấy tones mặc định (không có custom) */
     public static function get_tones()
     {
         return self::$tone_map;
+    }
+
+    /** Lấy tất cả tones: mặc định + custom từ DB */
+    public static function get_all_tones()
+    {
+        $custom = get_option('aif_custom_tones', []);
+        return array_merge(self::$tone_map, is_array($custom) ? $custom : []);
     }
 
     public function generate($raw_content, $platform, $tone = '')
@@ -45,9 +53,10 @@ class AIF_AI_Generator
         }
 
         // Tone instruction
+        $all_tones = self::get_all_tones();
         $tone_instruction = '';
-        if ($tone && isset(self::$tone_map[$tone])) {
-            $tone_instruction = self::$tone_map[$tone]['style'];
+        if ($tone && isset($all_tones[$tone])) {
+            $tone_instruction = $all_tones[$tone]['style'];
         }
 
         // Prompt Engineering
@@ -98,15 +107,87 @@ class AIF_AI_Generator
      */
     public function generate_variations($raw_content, $platform, $tone = '')
     {
+        $industry    = '';
+        $description = '';
+        if (is_array($raw_content)) {
+            $industry    = isset($raw_content['industry'])    ? $raw_content['industry']    : '';
+            $description = isset($raw_content['description']) ? $raw_content['description'] : '';
+        } else {
+            $description = $raw_content;
+        }
+
+        $all_tones = self::get_all_tones();
+        $tone_instruction = '';
+        if ($tone && isset($all_tones[$tone])) {
+            $tone_instruction = $all_tones[$tone]['style'];
+        }
+
+        // ── 1 API call duy nhất, yêu cầu AI trả 3 variations rõ ràng khác nhau ──
+        $prompt  = "Bạn là Chuyên gia Content Marketing cho $platform.\n";
+        $prompt .= "NHIỆM VỤ: Viết ĐÚNG 3 phiên bản bài viết HOÀN TOÀN KHÁC NHAU về cách tiếp cận, góc nhìn và phong cách.\n\n";
+        $prompt .= "--- THÔNG TIN ---\n";
+        if ($industry) $prompt .= "- Ngành: $industry\n";
+        $prompt .= "- Yêu cầu: $description\n";
+        if ($tone_instruction) $prompt .= "- Phong cách chung: $tone_instruction\n";
+        $prompt .= "\n--- YÊU CẦU 3 PHIÊN BẢN ---\n";
+        $prompt .= "Phiên bản 1 (STORYTELLING): Dùng kể chuyện cá nhân, cảm xúc để kéo người đọc.\n";
+        $prompt .= "Phiên bản 2 (DATA & INSIGHT): Dùng số liệu, sự thật thú vị, góc nhìn chuyên gia.\n";
+        $prompt .= "Phiên bản 3 (THỰC CHIẾN): Hướng dẫn cụ thể, tips hành động ngay, CTA mạnh mẽ.\n\n";
+        $prompt .= "QUAN TRỌNG: Mỗi phiên bản phải có hook mở đầu hoàn toàn khác nhau. Không được copy paste giữa các phiên bản.\n";
+
+        $system = 'You are a professional Vietnamese content creator. Return ONLY a valid JSON array with exactly 3 objects. Each object must have keys: "title" (string), "content" (string), "hashtags" (string). No markdown, no explanation outside JSON.';
+
+        $ai_response = $this->call_ai($prompt, $system, true);
+
+        if (!$ai_response || (is_array($ai_response) && isset($ai_response['error']))) {
+            return [];
+        }
+
+        // Parse JSON array từ AI response
+        $raw = $ai_response;
+        if (is_string($raw)) {
+            // Loại bỏ markdown fences nếu có
+            $raw = preg_replace('/^```(?:json)?\s*/i', '', trim($raw));
+            $raw = preg_replace('/\s*```$/', '', $raw);
+            $decoded = json_decode($raw, true);
+        } elseif (is_array($raw)) {
+            // Một số provider trả về array trực tiếp hoặc object có key 'variations'
+            $decoded = isset($raw['variations']) ? $raw['variations'] : $raw;
+        } else {
+            $decoded = null;
+        }
+
         $variations = [];
-        for ($i = 0; $i < 3; $i++) {
-            // Nhỏ delay để seed khác nhau
-            if ($i > 0) usleep(50000);
-            $result = $this->generate($raw_content, $platform, $tone);
-            if ($result && !empty($result['success'])) {
-                $variations[] = $result;
+        if (is_array($decoded)) {
+            // Nếu AI trả về object đơn {title,content,hashtags} thay vì array → bọc lại
+            if (isset($decoded['title'])) {
+                $decoded = [$decoded];
+            }
+            foreach ($decoded as $item) {
+                if (!is_array($item) || empty($item['content'])) continue;
+                $variations[] = [
+                    'success'         => true,
+                    'generated_title' => isset($item['title'])    ? $item['title']    : '',
+                    'caption'         => isset($item['content'])  ? $item['content']  : '',
+                    'hashtags'        => isset($item['hashtags']) ? $item['hashtags'] : '',
+                    'platform'        => $platform,
+                ];
             }
         }
+
+        // Fallback: nếu AI vẫn không trả về array, thử parse 3 lần riêng với tone khác nhau
+        if (empty($variations)) {
+            $fallback_tones = ['storytelling', 'data-driven', 'actionable'];
+            foreach ($fallback_tones as $ft) {
+                $result = $this->generate($raw_content, $platform, $tone ?: $ft);
+                if ($result && !empty($result['success'])) {
+                    $variations[] = $result;
+                }
+                if (count($variations) >= 3) break;
+                usleep(300000); // 300ms delay để tránh cache
+            }
+        }
+
         return $variations;
     }
 
