@@ -842,7 +842,10 @@ $counts = $db->get_counts();
                                         $att_id  = intval(substr($first_img, 7));
                                         $img_url = wp_get_attachment_image_url($att_id, 'thumbnail') ?: wp_get_attachment_url($att_id);
                                     } else {
-                                        $img_url = AIF_URL . 'upload/' . $first_img;
+                                        // $first_img có thể là "folder\filename" hoặc chỉ "filename"
+                                        // File luôn lưu flat trong /upload/ nên chỉ cần lấy basename
+                                        $basename = basename(str_replace('\\', '/', $first_img));
+                                        $img_url  = AIF_URL . 'upload/' . $basename;
                                     }
                                     if ($img_url):
                                         echo '<a href="' . esc_url($edit_link) . '"><img src="' . esc_url($img_url) . '" class="aif-post-thumbnail" loading="lazy" style="cursor:pointer;"></a>';
