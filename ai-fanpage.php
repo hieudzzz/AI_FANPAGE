@@ -2613,7 +2613,8 @@ class AI_Fanpage
         }
 
         $service = new AIF_AI_Generator();
-        $suggestions = $service->suggest_time($title, $content, $industry, $platform);
+        $current_time_mysql = current_time('mysql');
+        $suggestions = $service->suggest_time($title, $content, $industry, $platform, $current_time_mysql);
 
         if (!empty($suggestions)) {
             wp_send_json_success(['suggestions' => $suggestions]);
