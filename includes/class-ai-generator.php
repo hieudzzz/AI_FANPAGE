@@ -240,17 +240,23 @@ class AIF_AI_Generator
     /**
      * Suggest 3 optimal posting times based on content and industry.
      */
-    public function suggest_time($title, $content, $industry, $platform)
+    public function suggest_time($title, $content, $industry, $platform, $current_time = '')
     {
+        if (empty($current_time)) {
+            $current_time = current_time('mysql');
+        }
+
         $prompt  = "Bạn là Chuyên gia Tối ưu hóa Tương tác mạng xã hội.\n";
-        $prompt .= "NHIỆM VỤ: Gợi ý 3 mốc thời gian đăng bài (giờ và phút) tốt nhất để đạt tương tác cao nhất cho bài viết sau.\n\n";
+        $prompt .= "Thời gian hiện tại của hệ thống: $current_time\n\n";
+        $prompt .= "NHIỆM VỤ: Gợi ý 3 mốc thời gian đăng bài (YYYY-MM-DD HH:mm) tốt nhất để đạt tương tác cao nhất cho bài viết sau.\n";
+        $prompt .= "QUY TẮC BẮT BUỘC: Các mốc thời gian phải ở trong TƯƠNG LAI (Sau thời điểm $current_time).\n\n";
         $prompt .= "--- THÔNG TIN BÀI VIẾT ---\n";
         $prompt .= "- Ngành hàng: $industry\n";
         $prompt .= "- Tiêu đề: $title\n";
         $prompt .= "- Nội dung: " . wp_trim_words($content, 50, '...') . "\n";
         $prompt .= "- Nền tảng: $platform\n\n";
         $prompt .= "--- YÊU CẦU ---\n";
-        $prompt .= "1. Gợi ý 3 mốc thời gian cụ thể (giờ:phút) trong ngày hôm nay hoặc ngày mai.\n";
+        $prompt .= "1. Gợi ý 3 mốc thời gian cụ thể.\n";
         $prompt .= "2. Thời gian phải ở định dạng: YYYY-MM-DD HH:MM.\n";
         $prompt .= "3. Giải thích ngắn gọn lý do chọn mốc giờ đó (insight khách hàng).\n\n";
         $prompt .= "QUAN TRỌNG: Trả về duy nhất 1 JSON array gồm 3 objects. \n";
