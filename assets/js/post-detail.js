@@ -701,6 +701,13 @@ jQuery(document).ready(function ($) {
     $('#btn-generate-v2').on('click', function (e) {
         e.preventDefault();
         const description = $('#aif-description').val().trim();
+        const industry    = $('#aif-industry').val().trim();
+
+        if (!industry) {
+            if (window.AIF_Toast) AIF_Toast.show('Vui lòng nhập Đề tài (Topic)!', 'error');
+            $('#aif-industry').focus();
+            return;
+        }
         if (!description) {
             if (window.AIF_Toast) AIF_Toast.show('Vui lòng nhập mô tả yêu cầu!', 'error');
             else alert('Vui lòng nhập mô tả yêu cầu!');
@@ -720,6 +727,7 @@ jQuery(document).ready(function ($) {
                 action: 'aif_generate_content',
                 nonce: nonce,
                 post_id: postId,
+                industry: industry,
                 prompt: description,
                 current_content: $('#aif-caption').val(),
                 tone: getSelectedTone(),
@@ -735,6 +743,8 @@ jQuery(document).ready(function ($) {
                     }
                     _syncStatusUI('Content updated');
                     if (window.AIF_Toast) AIF_Toast.show('Đã tạo nội dung AI thành công!', 'success');
+                    // Tự động gợi ý thời gian
+                    aifFetchTimeSuggestions(true);
                 } else {
                     if (window.AIF_Toast) AIF_Toast.show('Lỗi AI: ' + (response.data || 'Không thể tạo nội dung.'), 'error');
                     else alert('Lỗi AI: ' + (response.data || ''));
@@ -750,6 +760,13 @@ jQuery(document).ready(function ($) {
     // ── Generate 3 Variations ─────────────────────────────────
     $('#btn-generate-variations').on('click', function () {
         const description = $('#aif-description').val().trim();
+        const industry    = $('#aif-industry').val().trim();
+
+        if (!industry) {
+            if (window.AIF_Toast) AIF_Toast.show('Vui lòng nhập Đề tài (Topic)!', 'error');
+            $('#aif-industry').focus();
+            return;
+        }
         if (!description) {
             if (window.AIF_Toast) AIF_Toast.show('Vui lòng nhập mô tả yêu cầu!', 'error');
             return;
@@ -770,6 +787,7 @@ jQuery(document).ready(function ($) {
                 action: 'aif_generate_variations',
                 nonce: nonce,
                 post_id: postId,
+                industry: industry,
                 prompt: description,
                 current_content: $('#aif-caption').val(),
                 tone: getSelectedTone(),
@@ -824,6 +842,8 @@ jQuery(document).ready(function ($) {
 
                 // Lưu tạm variations để dùng khi user chọn
                 window._aifVariations = vars;
+                // Tự động gợi ý thời gian
+                aifFetchTimeSuggestions(true);
             },
             complete: function () {
                 $btn.prop('disabled', false).html(origHtml);
@@ -1103,23 +1123,25 @@ jQuery(document).ready(function ($) {
     // =========================================================
     // 10. AI Time Suggestion
     // =========================================================
-    $('#btn-suggest-time').on('click', function () {
+    function aifFetchTimeSuggestions(silently = false) {
         const title    = $('#aif-title').val();
         const content  = $('#aif-caption').val();
         const industry = $('#aif-industry').val();
         const platform = $('#aif-platform').val();
 
         if (!title && !content) {
-            if (window.AIF_Toast) AIF_Toast.show('Cần tiêu đề hoặc nội dung để AI gợi ý thời gian.', 'error');
+            if (!silently && window.AIF_Toast) AIF_Toast.show('Cần tiêu đề hoặc nội dung để AI gợi ý thời gian.', 'error');
             return;
         }
 
-        const $btn = $(this);
+        const $btn = $('#btn-suggest-time');
         const originalHtml = $btn.html();
-        $btn.prop('disabled', true).html('<span class="spinner is-active" style="float:none; margin:0 5px 0 0;"></span> Đang tính...');
+        if (!silently) {
+            $btn.prop('disabled', true).html('<span class="spinner is-active" style="float:none; margin:0 5px 0 0;"></span> Đang tính...');
+        }
 
         $.ajax({
-            url: ajaxUrl, // Match existing ajaxUrl variable
+            url: ajaxUrl,
             type: 'POST',
             data: {
                 action: 'aif_suggest_time',
@@ -1132,67 +1154,79 @@ jQuery(document).ready(function ($) {
             success: function (res) {
                 if (res.success && res.data.suggestions) {
                     let suggestions = res.data.suggestions;
-                    // Robust check: if it's an object with numeric keys, convert to array
                     if (!Array.isArray(suggestions)) {
                         suggestions = Object.values(suggestions);
                     }
-                    // If nested [[...]] or { "data": [...] }, flatten
                     if (suggestions.length === 1 && Array.isArray(suggestions[0])) {
                         suggestions = suggestions[0];
                     }
                     
                     if (!suggestions.length) {
-                        if (window.AIF_Toast) AIF_Toast.show('AI không tìm thấy mốc thời gian phù hợp.', 'warning');
-                        console.log('Empty suggestions array:', res.data);
+                        if (!silently && window.AIF_Toast) AIF_Toast.show('AI không tìm thấy mốc thời gian phù hợp.', 'warning');
                         return;
                     }
                     let html = '';
-                    console.log('AI Suggestions:', suggestions);
                     suggestions.forEach(s => {
                         const timeStr = s.time || s.datetime || s.posting_time || s.scheduled_time;
-                        if (!timeStr) return; // Skip invalid entries
+                        if (!timeStr) return;
                         
-                        // date-time-local requires YYYY-MM-DDTHH:MM
                         const dtValue = timeStr.replace(' ', 'T');
                         const reason  = s.reason || s.explanation || 'Gợi ý từ AI';
-                        html += `<button type="button" class="aif-time-chip" data-time="${dtValue}" title="${reason}" style="padding:5px 10px; font-size:11px; background:#fff; border:1px solid #e2e8f0; border-radius:20px; cursor:pointer; color:#475569; transition:all 0.2s; white-space:nowrap;">
+                        html += `<button type="button" class="aif-time-chip" data-time="${dtValue}" data-reason="${reason}" style="padding:5px 10px; font-size:11px; background:#fff; border:1px solid #e2e8f0; border-radius:20px; cursor:pointer; color:#475569; transition:all 0.2s; white-space:nowrap;">
                                     <b>${timeStr}</b>
                                  </button>`;
                     });
                     $('#aif-time-suggestions').html(html).fadeIn().css('display', 'flex');
 
-                    // Apply suggestion click
-                    $('.aif-time-chip').on('click', function() {
+                    if (!$('#aif-time-tooltip').length) {
+                        $('body').append('<div id="aif-time-tooltip" style="position:absolute; display:none; background:#1e293b; color:#fff; padding:8px 12px; border-radius:6px; font-size:11px; max-width:250px; z-index:99999; box-shadow:0 10px 15px -3px rgb(0 0 0 / 0.1); line-height:1.4; pointer-events:none;"></div>');
+                    }
+                    const $tooltip = $('#aif-time-tooltip');
+
+                    $('.aif-time-chip').off('click').on('click', function() {
                         const val = $(this).data('time');
                         $('#aif-schedule-input').val(val);
                         if (window.AIF_Toast) AIF_Toast.show('Đã áp dụng thời gian: ' + $(this).find('b').text(), 'success');
                         
-                        // Highlight selected chip
-                        $('.aif-time-chip').css({ 'background': '#fff', 'border-color': '#e2e8f0', 'color': '#475569' });
-                        $(this).css({ 'background': '#eff6ff', 'border-color': '#3b82f6', 'color': '#3b82f6' });
+                        $('.aif-time-chip').css({ 'background': '#fff', 'border-color': '#e2e8f0', 'color': '#475569' }).removeClass('active-chip');
+                        $(this).css({ 'background': '#eff6ff', 'border-color': '#3b82f6', 'color': '#3b82f6' }).addClass('active-chip');
                     });
                     
-                    // Add simple hover effect
-                    $('.aif-time-chip').hover(function() {
+                    $('.aif-time-chip').off('mouseenter mouseleave').on('mouseenter', function() {
+                        const reason = $(this).data('reason');
+                        if (!reason) return;
+                        $tooltip.text(reason).show();
                         $(this).css('border-color', '#3b82f6');
-                    }, function() {
+                        const offset = $(this).offset();
+                        const tooltipHeight = $tooltip.outerHeight();
+                        const tooltipWidth = $tooltip.outerWidth();
+                        const chipWidth = $(this).outerWidth();
+                        $tooltip.css({
+                            top: offset.top - tooltipHeight - 10,
+                            left: offset.left + (chipWidth / 2) - (tooltipWidth / 2)
+                        });
+                    }).on('mouseleave', function() {
+                        $tooltip.hide();
                         if (!$(this).hasClass('active-chip')) {
                             $(this).css('border-color', '#e2e8f0');
                         }
                     });
-                } else {
+                } else if (!silently) {
                     const error = res.data || 'Lỗi gợi ý thời gian';
                     if (window.AIF_Toast) AIF_Toast.show(error, 'error');
-                    console.error('AI Time Suggest Error:', res);
                 }
             },
             error: function (xhr, stt, err) {
-                if (window.AIF_Toast) AIF_Toast.show('Lỗi kết nối máy chủ khi gợi ý thời gian.', 'error');
-                console.error('AJAX Error:', err);
+                if (!silently && window.AIF_Toast) AIF_Toast.show('Lỗi kết nối máy chủ khi gợi ý thời gian.', 'error');
             },
             complete: function () {
-                $btn.prop('disabled', false).html(originalHtml);
+                if (!silently) $btn.prop('disabled', false).html(originalHtml);
             }
         });
+    }
+
+    $('#btn-suggest-time').on('click', function () {
+        aifFetchTimeSuggestions(false);
     });
 });
+

@@ -130,85 +130,41 @@ class AIF_AI_Generator
      */
     public function generate_variations($raw_content, $platform, $tone = '')
     {
-        $industry    = '';
-        $description = '';
-        if (is_array($raw_content)) {
-            $industry    = isset($raw_content['industry'])    ? $raw_content['industry']    : '';
-            $description = isset($raw_content['description']) ? $raw_content['description'] : '';
-        } else {
-            $description = $raw_content;
-        }
-
-        $all_tones = self::get_all_tones();
-        $tone_instruction = '';
-        if ($tone && isset($all_tones[$tone])) {
-            $tone_instruction = $all_tones[$tone]['style'];
-        }
-
-        // ── 1 API call duy nhất, yêu cầu AI trả 3 variations rõ ràng khác nhau ──
-        $prompt  = "Bạn là Chuyên gia Content Marketing cho $platform.\n";
-        $prompt .= "NHIỆM VỤ: Viết ĐÚNG 3 phiên bản bài viết HOÀN TOÀN KHÁC NHAU về cách tiếp cận, góc nhìn và phong cách.\n\n";
-        $prompt .= "--- THÔNG TIN ---\n";
-        if ($industry) $prompt .= "- Ngành: $industry\n";
-        $prompt .= "- Yêu cầu: $description\n";
-        if ($tone_instruction) $prompt .= "- Phong cách chung: $tone_instruction\n";
-        $prompt .= "\n--- YÊU CẦU 3 PHIÊN BẢN ---\n";
-        $prompt .= "Phiên bản 1 (STORYTELLING): Dùng kể chuyện cá nhân, cảm xúc để kéo người đọc.\n";
-        $prompt .= "Phiên bản 2 (DATA & INSIGHT): Dùng số liệu, sự thật thú vị, góc nhìn chuyên gia.\n";
-        $prompt .= "Phiên bản 3 (THỰC CHIẾN): Hướng dẫn cụ thể, tips hành động ngay, CTA mạnh mẽ.\n\n";
-        $prompt .= "QUAN TRỌNG: Mỗi phiên bản phải có hook mở đầu hoàn toàn khác nhau. Không được copy paste giữa các phiên bản.\n";
-
-        $system = 'You are a professional Vietnamese content creator. Return ONLY a valid JSON array with exactly 3 objects. Each object must have keys: "title" (string), "content" (string), "hashtags" (string). No markdown, no explanation outside JSON.';
-
-        $ai_response = $this->call_ai($prompt, $system, true);
-
-        if (!$ai_response || (is_array($ai_response) && isset($ai_response['error']))) {
-            return [];
-        }
-
-        // Parse JSON array từ AI response
-        $raw = $ai_response;
-        if (is_string($raw)) {
-            // Loại bỏ markdown fences nếu có
-            $raw = preg_replace('/^```(?:json)?\s*/i', '', trim($raw));
-            $raw = preg_replace('/\s*```$/', '', $raw);
-            $decoded = json_decode($raw, true);
-        } elseif (is_array($raw)) {
-            // Một số provider trả về array trực tiếp hoặc object có key 'variations'
-            $decoded = isset($raw['variations']) ? $raw['variations'] : $raw;
-        } else {
-            $decoded = null;
-        }
-
         $variations = [];
-        if (is_array($decoded)) {
-            // Nếu AI trả về object đơn {title,content,hashtags} thay vì array → bọc lại
-            if (isset($decoded['title'])) {
-                $decoded = [$decoded];
-            }
-            foreach ($decoded as $item) {
-                if (!is_array($item) || empty($item['content'])) continue;
-                $variations[] = [
-                    'success'         => true,
-                    'generated_title' => isset($item['title'])    ? $item['title']    : '',
-                    'caption'         => isset($item['content'])  ? $item['content']  : '',
-                    'hashtags'        => isset($item['hashtags']) ? $item['hashtags'] : '',
-                    'platform'        => $platform,
-                ];
-            }
-        }
+        $angles = [
+            'storytelling' => [
+                'name' => 'Cảm xúc/Kể chuyện',
+                'desc' => 'Dùng kể chuyện cá nhân, cảm xúc để kéo người đọc. Giọng văn tâm tình, gần gũi.',
+            ],
+            'logic' => [
+                'name' => 'Logic/Lý trí',
+                'desc' => 'Đánh mạnh vào lý trí bằng các con số, lợi ích chứng thực hoặc giải pháp cụ thể. Cấu trúc rõ ràng, chuyên gia.',
+            ],
+            'viral' => [
+                'name' => 'Khiêu khích/Viral',
+                'desc' => 'Dùng các câu hỏi ngược đời, khẳng định gây sốc hoặc bắt trend để kích thích thảo luận.',
+            ],
+        ];
 
-        // Fallback: nếu AI vẫn không trả về array, thử parse 3 lần riêng với tone khác nhau
-        if (empty($variations)) {
-            $fallback_tones = ['storytelling', 'data-driven', 'actionable'];
-            foreach ($fallback_tones as $ft) {
-                $result = $this->generate($raw_content, $platform, $tone ?: $ft);
-                if ($result && !empty($result['success'])) {
-                    $variations[] = $result;
-                }
-                if (count($variations) >= 3) break;
-                usleep(300000); // 300ms delay để tránh cache
+        foreach ($angles as $key => $angle) {
+            // Tạo prompt riêng cho từng angle để đảm bảo 100% độc lập
+            $specific_content = $raw_content;
+            if (is_array($specific_content)) {
+                $specific_content['description'] .= "\n\nHƯỚNG TIẾP CẬN BẮT BUỘC: " . $angle['desc'] . " (Bản này phải khác biệt hoàn toàn về hook và vibe so với các bản khác).";
             }
+
+            $result = $this->generate($specific_content, $platform, $tone);
+
+            if ($result && !empty($result['success'])) {
+                // Gán lại title theo angle nếu AI trả về title chung chung
+                if (empty($result['generated_title']) || stripos($result['generated_title'], 'Content') !== false) {
+                    $result['generated_title'] = $angle['name'];
+                }
+                $variations[] = $result;
+            }
+
+            if (count($variations) >= 3) break;
+            usleep(200000); // 200ms delay để tránh cache seed nếu có
         }
 
         return $variations;

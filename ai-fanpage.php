@@ -583,8 +583,8 @@ class AI_Fanpage
         $current_content = isset($_POST['current_content']) ? sanitize_textarea_field($_POST['current_content']) : '';
         $tone            = isset($_POST['tone'])            ? sanitize_text_field($_POST['tone'])               : '';
 
-        $industry = '';
-        if ($post_id) {
+        $industry = isset($_POST['industry']) ? sanitize_text_field(wp_unslash($_POST['industry'])) : '';
+        if (empty($industry) && $post_id) {
             $db   = new AIF_DB();
             $post = $db->get($post_id);
             if ($post) $industry = $post->industry;
@@ -624,8 +624,8 @@ class AI_Fanpage
             wp_send_json_error('Vui lòng nhập mô tả yêu cầu.');
         }
 
-        $industry = '';
-        if ($post_id) {
+        $industry = isset($_POST['industry']) ? sanitize_text_field(wp_unslash($_POST['industry'])) : '';
+        if (empty($industry) && $post_id) {
             $db   = new AIF_DB();
             $post = $db->get($post_id);
             if ($post) $industry = $post->industry;
