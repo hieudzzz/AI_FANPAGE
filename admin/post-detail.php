@@ -61,7 +61,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && check_admin_referer('aif_save_post'
             $images = isset($_POST['aif_images']) ? json_encode(wp_unslash($_POST['aif_images'])) : '[]';
         }
         $image_website = isset($_POST['aif_image_website']) ? sanitize_text_field(wp_unslash($_POST['aif_image_website'])) : '';
-        $post_type = isset($_POST['aif_post_type']) ? sanitize_text_field($_POST['aif_post_type']) : 'post';
+        $post_type = isset($_POST['aif_post_type']) ? array_map('sanitize_text_field', $_POST['aif_post_type']) : ['post'];
+        $post_type_json = json_encode(array_values($post_type));
         $wp_category_ids = isset($_POST['aif_wp_category']) ? array_map('intval', $_POST['aif_wp_category']) : [];
         $wp_category_json = json_encode($wp_category_ids);
         $feedback = isset($_POST['aif_feedback']) ? sanitize_textarea_field(wp_unslash($_POST['aif_feedback'])) : '';
@@ -168,7 +169,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && check_admin_referer('aif_save_post'
             'owner' => $owner,
             'images' => $images,
             'image_website' => $image_website,
-            'post_type' => $post_type,
+            'post_type' => $post_type_json,
             'slug_category' => $wp_category_json,
             'feedback' => $feedback,
             'time_posting' => $schedule,
@@ -269,7 +270,7 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($json_data) && isset($json
                         <option value="Posted successfully" selected>Posted successfully (Đã đăng)</option>
                     <?php endif; ?>
                 </select>
-                <span class="dashicons dashicons-arrow-down-alt2" 
+                <span class="dashicons dashicons-arrow-down-alt2"
                     style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none; font-size: 14px; color: #94a3b8; <?php echo $is_locked ? 'display:none;' : ''; ?>"></span>
             </div>
         </div>
@@ -290,19 +291,19 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($json_data) && isset($json
     }
     if (!empty($aif_toast_messages)):
     ?>
-    <script>
-    (function waitForToast() {
-        if (window.AIF_Toast) {
-            <?php foreach ($aif_toast_messages as $i => $t): ?>
-            setTimeout(function() {
-                AIF_Toast.show(<?php echo json_encode($t['msg']); ?>, <?php echo json_encode($t['type']); ?>);
-            }, <?php echo $i * 600; ?>);
-            <?php endforeach; ?>
-        } else {
-            setTimeout(waitForToast, 80);
-        }
-    })();
-    </script>
+        <script>
+            (function waitForToast() {
+                if (window.AIF_Toast) {
+                    <?php foreach ($aif_toast_messages as $i => $t): ?>
+                        setTimeout(function() {
+                            AIF_Toast.show(<?php echo json_encode($t['msg']); ?>, <?php echo json_encode($t['type']); ?>);
+                        }, <?php echo $i * 600; ?>);
+                    <?php endforeach; ?>
+                } else {
+                    setTimeout(waitForToast, 80);
+                }
+            })();
+        </script>
     <?php endif; ?>
 
     <?php if ($is_locked && $lock_reason === 'queued'): ?>
@@ -328,12 +329,16 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($json_data) && isset($json
                     $results = $db->get_results($post_id);
                     foreach ($results as $res):
                         $platform_icon = ($res->platform === 'facebook') ? 'dashicons-facebook' : 'dashicons-admin-site';
-                        ?>
+                    ?>
                         <a href="<?php echo esc_url($res->link); ?>" target="_blank" class="banner-link">
                             <span class="dashicons <?php echo $platform_icon; ?>"></span>
                             <?php
                             if ($res->platform === 'facebook' && !empty($res->page_name)) {
                                 echo 'Xem trên ' . esc_html($res->page_name);
+                            } elseif ($res->platform === 'website' && !empty($res->target_id) && $res->target_id !== '0') {
+                                $pt_obj_banner = get_post_type_object($res->target_id);
+                                $pt_banner_name = $pt_obj_banner ? $pt_obj_banner->labels->singular_name : $res->target_id;
+                                echo 'Xem trên Website — ' . esc_html($pt_banner_name);
                             } else {
                                 echo 'Xem trên ' . esc_html(ucfirst($res->platform));
                             }
@@ -426,41 +431,70 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($json_data) && isset($json
                                 <?php
                                 $all_post_types = get_post_types(['public' => true], 'objects');
                                 unset($all_post_types['page'], $all_post_types['attachment']);
-                                $current_pt = ($post && !empty($post->post_type)) ? $post->post_type : 'post';
+                                // Support multi post types (JSON array) or legacy single string
+                                $saved_post_types = [];
+                                if ($post && !empty($post->post_type)) {
+                                    $decoded = json_decode($post->post_type, true);
+                                    if (is_array($decoded)) {
+                                        $saved_post_types = $decoded;
+                                    } else {
+                                        $saved_post_types = [$post->post_type];
+                                    }
+                                } else {
+                                    $saved_post_types = ['post'];
+                                }
                                 ?>
-                                <select name="aif_post_type" id="aif-post-type" class="aif-select">
-                                    <?php foreach ($all_post_types as $pt): ?>
-                                        <option value="<?php echo esc_attr($pt->name); ?>" <?php selected($current_pt, $pt->name); ?>>
-                                            <?php echo esc_html($pt->labels->singular_name); ?>
-                                        </option>
+                                <div id="aif-post-type-list" style="max-height: 180px; overflow-y: auto; border: 1px solid var(--aif-border-light); border-radius: 8px; padding: 12px; background: var(--aif-bg-subtle);">
+                                    <?php foreach ($all_post_types as $pt):
+                                        $checked = in_array($pt->name, $saved_post_types) ? 'checked' : '';
+                                    ?>
+                                        <label style="display:flex; align-items:center; gap:8px; margin-bottom:8px; cursor:pointer; font-size:13px;">
+                                            <input type="checkbox" name="aif_post_type[]" value="<?php echo esc_attr($pt->name); ?>" class="aif-post-type-checkbox" <?php echo $checked; ?>>
+                                            <?php echo esc_html($pt->labels->singular_name); ?> <code style="font-size:11px; color:#94a3b8;">(<?php echo esc_html($pt->name); ?>)</code>
+                                        </label>
                                     <?php endforeach; ?>
-                                </select>
+                                </div>
                             </div>
 
                             <div class="aif-form-group">
                                 <label>Danh mục</label>
                                 <div id="aif-category-list"
-                                    style="max-height: 180px; overflow-y: auto; border: 1px solid var(--aif-border-light); border-radius: 8px; padding: 12px; background: var(--aif-bg-subtle);">
+                                    style="max-height: 250px; overflow-y: auto; border: 1px solid var(--aif-border-light); border-radius: 8px; padding: 12px; background: var(--aif-bg-subtle);">
                                     <?php
                                     $saved_cats = ($post && !empty($post->slug_category)) ? (json_decode($post->slug_category, true) ?: [intval($post->slug_category)]) : [];
-                                    $taxonomies = get_object_taxonomies($current_pt, 'objects');
-                                    $tax_name = '';
-                                    foreach ($taxonomies as $tax)
-                                        if ($tax->hierarchical) {
-                                            $tax_name = $tax->name;
-                                            break;
-                                        }
-                                    if ($tax_name) {
-                                        $terms = get_terms(['taxonomy' => $tax_name, 'hide_empty' => false]);
-                                        if (!is_wp_error($terms))
-                                            foreach ($terms as $term) {
-                                                $checked = in_array($term->term_id, $saved_cats) ? 'checked' : '';
-                                                echo '<label style="display:flex; align-items:center; gap:8px; margin-bottom:8px; cursor:pointer; font-size:13px;">';
-                                                echo '<input type="checkbox" name="aif_wp_category[]" value="' . esc_attr($term->term_id) . '" ' . $checked . '> ' . esc_html($term->name);
-                                                echo '</label>';
+                                    $has_any_cat = false;
+                                    foreach ($saved_post_types as $spt) {
+                                        $spt_obj = get_post_type_object($spt);
+                                        $spt_label = $spt_obj ? $spt_obj->labels->singular_name : $spt;
+                                        $taxonomies = get_object_taxonomies($spt, 'objects');
+                                        $tax_name = '';
+                                        foreach ($taxonomies as $tax) {
+                                            if ($tax->hierarchical) {
+                                                $tax_name = $tax->name;
+                                                break;
                                             }
-                                    } else
-                                        echo '<em>Không có danh mục.</em>';
+                                        }
+                                        if ($tax_name) {
+                                            $terms = get_terms(['taxonomy' => $tax_name, 'hide_empty' => false]);
+                                            if (!is_wp_error($terms) && !empty($terms)) {
+                                                $has_any_cat = true;
+                                                echo '<div class="aif-cat-group" style="margin-bottom:10px;">';
+                                                echo '<div style="font-size:11px; font-weight:700; color:#6366f1; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; padding-bottom:4px; border-bottom:1px dashed #e2e8f0;">';
+                                                echo esc_html($spt_label) . ' <code style="font-size:10px;color:#94a3b8;">(' . esc_html($spt) . ')</code>';
+                                                echo '</div>';
+                                                foreach ($terms as $term) {
+                                                    $checked = in_array($term->term_id, $saved_cats) ? 'checked' : '';
+                                                    echo '<label style="display:flex; align-items:center; gap:8px; margin-bottom:6px; cursor:pointer; font-size:13px; padding-left:4px;">';
+                                                    echo '<input type="checkbox" name="aif_wp_category[]" value="' . esc_attr($term->term_id) . '" ' . $checked . '> ' . esc_html($term->name);
+                                                    echo '</label>';
+                                                }
+                                                echo '</div>';
+                                            }
+                                        }
+                                    }
+                                    if (!$has_any_cat) {
+                                        echo '<em>Không có danh mục cho các Post Type đã chọn.</em>';
+                                    }
                                     ?>
                                 </div>
                             </div>
@@ -506,17 +540,17 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($json_data) && isset($json
                                         foreach ($tones as $key => $info):
                                             $is_custom = !empty($info['custom']);
                                         ?>
-                                        <button type="button"
-                                            class="aif-tone-btn <?php echo ($current_tone === $key) ? 'active' : ''; ?> <?php echo $is_custom ? 'aif-tone-custom' : ''; ?>"
-                                            data-tone="<?php echo esc_attr($key); ?>"
-                                            data-desc="<?php echo esc_attr($info['description'] ?? $info['desc'] ?? ''); ?>"
-                                            data-style="<?php echo esc_attr($info['style'] ?? ''); ?>"
-                                            data-custom="<?php echo $is_custom ? '1' : '0'; ?>"
-                                            data-id="<?php echo esc_attr($info['id'] ?? ''); ?>"
-                                            data-label="<?php echo esc_attr($info['label']); ?>">
-                                            <?php echo esc_html($info['label']); ?>
-                                            <?php if ($is_custom): ?><span class="aif-tone-custom-del" data-key="<?php echo esc_attr($key); ?>" data-id="<?php echo esc_attr($info['id'] ?? ''); ?>" title="Xóa phong cách này">×</span><?php endif; ?>
-                                        </button>
+                                            <button type="button"
+                                                class="aif-tone-btn <?php echo ($current_tone === $key) ? 'active' : ''; ?> <?php echo $is_custom ? 'aif-tone-custom' : ''; ?>"
+                                                data-tone="<?php echo esc_attr($key); ?>"
+                                                data-desc="<?php echo esc_attr($info['description'] ?? $info['desc'] ?? ''); ?>"
+                                                data-style="<?php echo esc_attr($info['style'] ?? ''); ?>"
+                                                data-custom="<?php echo $is_custom ? '1' : '0'; ?>"
+                                                data-id="<?php echo esc_attr($info['id'] ?? ''); ?>"
+                                                data-label="<?php echo esc_attr($info['label']); ?>">
+                                                <?php echo esc_html($info['label']); ?>
+                                                <?php if ($is_custom): ?><span class="aif-tone-custom-del" data-key="<?php echo esc_attr($key); ?>" data-id="<?php echo esc_attr($info['id'] ?? ''); ?>" title="Xóa phong cách này">×</span><?php endif; ?>
+                                            </button>
                                         <?php endforeach; ?>
                                         <!-- Button thêm mới -->
                                         <button type="button" class="aif-tone-btn aif-tone-add-btn" id="aif-tone-add-btn" title="Thêm phong cách viết mới">
@@ -686,7 +720,7 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($json_data) && isset($json
                                 <!-- Populated by JS -->
                             </div>
                             <input type="hidden" name="aif_images_order" id="aif-images-order-input" value='<?php echo esc_attr($post ? $post->images : "[]"); ?>'>
-                            
+
                             <div class="aif-media-section-title" style="margin-top: 25px;">
                                 <span class="dashicons dashicons-admin-site" style="font-size: 16px;"></span> Website Thumbnail (Chọn 1)
                             </div>
@@ -764,13 +798,20 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($json_data) && isset($json
                                 <?php foreach ($results as $res): ?>
                                     <div class="aif-metric-row" data-result-id="<?php echo $res->id; ?>" style="padding: 15px; border-bottom: 1px solid var(--aif-border-light);">
                                         <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                                            <?php 
+                                            <?php
                                             $p_class = ($res->platform === 'facebook') ? 'aif-fb-badge' : 'aif-web-badge';
                                             $p_icon = ($res->platform === 'facebook') ? 'dashicons-facebook' : 'dashicons-admin-site';
+                                            // Show post type label for website results
+                                            $platform_display = ucfirst($res->platform);
+                                            if ($res->platform === 'website' && !empty($res->target_id) && $res->target_id !== '0') {
+                                                $pt_obj_display = get_post_type_object($res->target_id);
+                                                $pt_name = $pt_obj_display ? $pt_obj_display->labels->singular_name : $res->target_id;
+                                                $platform_display = 'Website — ' . $pt_name;
+                                            }
                                             ?>
                                             <span class="aif-platform-badge <?php echo $p_class; ?>">
                                                 <span class="dashicons <?php echo $p_icon; ?>" style="font-size: 14px; width: 14px; height: 14px; margin-right: 4px;"></span>
-                                                <?php echo esc_html(ucfirst($res->platform)); ?>
+                                                <?php echo esc_html($platform_display); ?>
                                             </span>
                                             <a href="<?php echo esc_url($res->link); ?>" target="_blank"
                                                 style="font-size: 11px; text-decoration: none;"><span

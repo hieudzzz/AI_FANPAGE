@@ -2215,6 +2215,10 @@ class AI_Fanpage
 
         $post_type = isset($_POST['post_type']) ? sanitize_key($_POST['post_type']) : 'post';
 
+        // Get post type label
+        $pt_obj = get_post_type_object($post_type);
+        $pt_label = $pt_obj ? $pt_obj->labels->singular_name : $post_type;
+
         $taxonomies = get_object_taxonomies($post_type, 'objects');
         $tax_name = '';
         foreach ($taxonomies as $tax) {
@@ -2225,7 +2229,7 @@ class AI_Fanpage
         }
 
         if (!$tax_name) {
-            wp_send_json_success(['terms' => [], 'taxonomy' => '', 'message' => 'No hierarchical taxonomy']);
+            wp_send_json_success(['terms' => [], 'taxonomy' => '', 'post_type' => $post_type, 'post_type_label' => $pt_label, 'message' => 'No hierarchical taxonomy']);
             return;
         }
 
@@ -2241,7 +2245,7 @@ class AI_Fanpage
             }
         }
 
-        wp_send_json_success(['terms' => $result, 'taxonomy' => $tax_name]);
+        wp_send_json_success(['terms' => $result, 'taxonomy' => $tax_name, 'post_type' => $post_type, 'post_type_label' => $pt_label]);
     }
 
     public function handle_fetch_metrics()

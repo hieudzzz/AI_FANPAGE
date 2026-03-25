@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Database Helper Class
  */
@@ -31,7 +32,7 @@ class AIF_DB
             'images' => '[]',
             'image_website' => '',
             'time_posting' => '',
-            'post_type' => 'post',
+            'post_type' => '["post"]',
             'owner' => '',
             'note' => '',
             'feedback' => '',

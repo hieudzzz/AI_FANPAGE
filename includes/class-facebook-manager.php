@@ -428,14 +428,30 @@ class AIF_Facebook_Manager
                         'updated_at' => current_time('mysql')
                     ], ['id' => $item->post_id]);
 
-                    // Save Result to New Table
-                    $wpdb->insert($wpdb->prefix . 'aif_post_results', [
-                        'post_id' => $item->post_id,
-                        'platform' => 'website',
-                        'target_id' => '0',
-                        'link' => $result['link'],
-                        'created_at' => current_time('mysql')
-                    ]);
+                    // Save each post type result as a separate row
+                    if (!empty($result['results'])) {
+                        foreach ($result['results'] as $r) {
+                            if (!empty($r['success']) && !empty($r['link'])) {
+                                $pt_label = isset($r['post_type']) ? $r['post_type'] : '';
+                                $wpdb->insert($wpdb->prefix . 'aif_post_results', [
+                                    'post_id' => $item->post_id,
+                                    'platform' => 'website',
+                                    'target_id' => $pt_label,
+                                    'link' => $r['link'],
+                                    'created_at' => current_time('mysql')
+                                ]);
+                            }
+                        }
+                    } else {
+                        // Fallback: single link (legacy)
+                        $wpdb->insert($wpdb->prefix . 'aif_post_results', [
+                            'post_id' => $item->post_id,
+                            'platform' => 'website',
+                            'target_id' => '0',
+                            'link' => $result['link'],
+                            'created_at' => current_time('mysql')
+                        ]);
+                    }
 
                     $wpdb->delete($table_queue, ['id' => $item->id]);
                 } else {

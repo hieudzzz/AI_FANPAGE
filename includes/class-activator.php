@@ -33,7 +33,7 @@ class AIF_Activator
             images text,
             image_website varchar(255) DEFAULT '',
             time_posting datetime DEFAULT '0000-00-00 00:00:00',
-            post_type varchar(50) DEFAULT 'post',
+            post_type text,
             owner varchar(100) DEFAULT '',
             note text,
             feedback text,
@@ -226,6 +226,18 @@ class AIF_Activator
         global $wpdb;
         $table_posts = $wpdb->prefix . 'aif_posts';
         $table_results = $wpdb->prefix . 'aif_post_results';
+
+        // Migrate post_type column: varchar(50) → text, and convert legacy single values to JSON array
+        $col_info = $wpdb->get_row("SHOW COLUMNS FROM $table_posts WHERE Field = 'post_type'");
+        if ($col_info && stripos($col_info->Type, 'varchar') !== false) {
+            $wpdb->query("ALTER TABLE $table_posts MODIFY post_type text");
+            // Convert existing single string values to JSON arrays (e.g. "post" → '["post"]')
+            $rows = $wpdb->get_results("SELECT id, post_type FROM $table_posts WHERE post_type IS NOT NULL AND post_type != '' AND post_type NOT LIKE '[%'");
+            foreach ($rows as $row) {
+                $json_val = json_encode([$row->post_type]);
+                $wpdb->update($table_posts, ['post_type' => $json_val], ['id' => $row->id]);
+            }
+        }
 
         // Check if table exists before migrating
         if ($wpdb->get_var("SHOW TABLES LIKE '$table_results'") != $table_results) {

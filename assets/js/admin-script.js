@@ -801,33 +801,72 @@ jQuery(document).ready(function ($) {
     });
 
     // === POST TYPE → Dynamic Category Loading (Post Detail Page) ===
-    $('#aif-post-type').on('change', function () {
-        const postType = $(this).val();
+    // Multi post type checkboxes: load categories grouped by post type
+    var _aifCatRequestId = 0; // Track latest request batch to ignore stale responses
+    $(document).on('change', '.aif-post-type-checkbox', function () {
+        var currentRequestId = ++_aifCatRequestId; // Increment on every change
+
+        const checkedTypes = [];
+        $('.aif-post-type-checkbox:checked').each(function () {
+            checkedTypes.push($(this).val());
+        });
         const container = $('#aif-category-list');
+        if (checkedTypes.length === 0) {
+            container.html('<em style="color:#999;">Vui lòng chọn ít nhất một Post Type.</em>');
+            return;
+        }
         container.html('<em style="color:#999;">Đang tải danh mục...</em>');
 
-        $.post(aif_ajax.ajax_url, {
-            action: 'aif_get_taxonomies',
-            nonce: aif_ajax.nonce,
-            post_type: postType
-        }, function (res) {
-            if (res.success) {
-                const terms = res.data.terms;
-                if (terms.length === 0) {
-                    container.html('<em style="color:#999;">Post type này không có danh mục phân cấp.</em>');
-                    return;
+        // Load categories from all selected post types, grouped by post type
+        let groupResults = []; // [{postType, label, terms}]
+        let loaded = 0;
+        checkedTypes.forEach(function (postType) {
+            $.post(aif_ajax.ajax_url, {
+                action: 'aif_get_taxonomies',
+                nonce: aif_ajax.nonce,
+                post_type: postType
+            }, function (res) {
+                // Ignore if a newer request batch has started
+                if (currentRequestId !== _aifCatRequestId) return;
+
+                loaded++;
+                const label = (res.success && res.data.post_type_label) ? res.data.post_type_label : postType;
+                const terms = (res.success && res.data.terms) ? res.data.terms : [];
+                groupResults.push({ postType: postType, label: label, terms: terms });
+
+                // When all requests done, render grouped
+                if (loaded === checkedTypes.length) {
+                    // Sort groups by original checkedTypes order
+                    groupResults.sort(function (a, b) {
+                        return checkedTypes.indexOf(a.postType) - checkedTypes.indexOf(b.postType);
+                    });
+
+                    let hasAnyCat = false;
+                    let html = '';
+                    groupResults.forEach(function (group) {
+                        if (group.terms.length > 0) {
+                            hasAnyCat = true;
+                            html += '<div class="aif-cat-group" style="margin-bottom:10px;">';
+                            html += '<div style="font-size:11px; font-weight:700; color:#6366f1; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; padding-bottom:4px; border-bottom:1px dashed #e2e8f0;">';
+                            html += group.label + ' <code style="font-size:10px;color:#94a3b8;">(' + group.postType + ')</code>';
+                            html += '</div>';
+                            group.terms.forEach(function (t) {
+                                html += '<label style="display:flex; align-items:center; gap:8px; margin-bottom:6px; cursor:pointer; font-size:13px; padding-left:4px;">';
+                                html += '<input type="checkbox" name="aif_wp_category[]" value="' + t.id + '"> ';
+                                html += t.name;
+                                html += '</label>';
+                            });
+                            html += '</div>';
+                        }
+                    });
+
+                    if (!hasAnyCat) {
+                        container.html('<em style="color:#999;">Các Post Type đã chọn không có danh mục phân cấp.</em>');
+                    } else {
+                        container.html(html);
+                    }
                 }
-                let html = '';
-                terms.forEach(function (t) {
-                    html += '<label style="display:block; padding: 4px 0; cursor:pointer;">';
-                    html += '<input type="checkbox" name="aif_wp_category[]" value="' + t.id + '"> ';
-                    html += t.name;
-                    html += '</label>';
-                });
-                container.html(html);
-            } else {
-                container.html('<em style="color:#999;">Lỗi tải danh mục.</em>');
-            }
+            });
         });
     });
 
