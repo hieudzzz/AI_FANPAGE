@@ -285,7 +285,7 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($json_data) && isset($json
     }
     if (isset($_SESSION['aif_message'])) {
         $msg  = $_SESSION['aif_message'];
-        $type = (strpos($msg, 'Lỗi') !== false || strpos($msg, '') !== false) ? 'error' : 'success';
+        $type = (strpos($msg, 'Lỗi') !== false) ? 'error' : 'success';
         $aif_toast_messages[] = ['msg' => $msg, 'type' => $type];
         unset($_SESSION['aif_message']);
     }

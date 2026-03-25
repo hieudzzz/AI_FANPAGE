@@ -68,9 +68,9 @@ $unified_sql = "SELECT
                 SUM(COALESCE(r.reach_count, 0)) as reach_count, 
                 MAX(r.metrics_updated_at) as metrics_updated_at,
                 " . ($page_filter > 0
-                    ? $wpdb->prepare("MAX(CASE WHEN r.target_id = %d THEN f.page_name ELSE NULL END) as fanpage_name", $page_filter)
-                    : "MAX(CASE WHEN r.platform = 'facebook' THEN f.page_name ELSE NULL END) as fanpage_name"
-                ) . "
+    ? $wpdb->prepare("MAX(CASE WHEN r.target_id = %d THEN f.page_name ELSE NULL END) as fanpage_name", $page_filter)
+    : "MAX(CASE WHEN r.platform = 'facebook' THEN f.page_name ELSE NULL END) as fanpage_name"
+) . "
              FROM $table_posts p
              LEFT JOIN $table_results r ON p.id = r.post_id
              LEFT JOIN $table_pages f ON r.platform = 'facebook' AND f.id = r.target_id
@@ -97,8 +97,11 @@ $sql = "SELECT * FROM ($unified_sql) as combined
 $results = $wpdb->get_results($sql);
 
 // --- Fetch all FB links per post (for multi-page badge display) ---
-$post_ids_on_page = array_map(function($r) { return intval($r->post_id); }, $results);
+$post_ids_on_page = array_map(function ($r) {
+    return intval($r->post_id);
+}, $results);
 $fb_links_by_post = []; // [ post_id => [ ['page_name'=>..., 'link'=>...], ... ] ]
+$web_links_by_post = []; // [ post_id => [ ['post_type'=>..., 'label'=>..., 'link'=>...], ... ] ]
 if (!empty($post_ids_on_page)) {
     $ids_in = implode(',', $post_ids_on_page);
     $page_filter_extra = $page_filter > 0 ? $wpdb->prepare(" AND r.target_id = %d", $page_filter) : '';
@@ -113,6 +116,27 @@ if (!empty($post_ids_on_page)) {
         $fb_links_by_post[$fl->post_id][] = [
             'page_name' => $fl->page_name ?: 'Facebook',
             'link'      => $fl->link,
+        ];
+    }
+
+    // Fetch all website links per post (for multi post type badge display)
+    $web_links_rows = $wpdb->get_results(
+        "SELECT r.post_id, r.link, r.target_id
+         FROM $table_results r
+         WHERE r.platform = 'website' AND r.post_id IN ($ids_in)
+         ORDER BY r.id ASC"
+    );
+    foreach ($web_links_rows as $wl) {
+        $pt_slug = (!empty($wl->target_id) && $wl->target_id !== '0') ? $wl->target_id : '';
+        $pt_label = 'Website';
+        if ($pt_slug) {
+            $pt_obj = get_post_type_object($pt_slug);
+            $pt_label = $pt_obj ? $pt_obj->labels->singular_name : $pt_slug;
+        }
+        $web_links_by_post[$wl->post_id][] = [
+            'post_type' => $pt_slug,
+            'label'     => $pt_label,
+            'link'      => $wl->link,
         ];
     }
 }
@@ -200,19 +224,19 @@ foreach ($top_posts as $tp) {
             </div>
 
             <?php if (!empty($all_pages) && $platform_filter !== 'website'): ?>
-            <div class="aif-filter-group" style="margin-left: 15px; border-left: 1px solid var(--aif-border-light); padding-left: 15px;">
-                <span class="aif-filter-label">Fanpage:</span>
-                <div class="aif-pill-group">
-                    <a href="<?php echo add_query_arg(['fanpage_id' => 0, 'platform' => $platform_filter === 'website' ? 'all' : $platform_filter]); ?>"
-                        class="aif-pill <?php echo $page_filter === 0 ? 'active' : ''; ?>">Tất cả</a>
-                    <?php foreach ($all_pages as $fp): ?>
-                        <a href="<?php echo add_query_arg(['fanpage_id' => $fp->id, 'platform' => $platform_filter === 'website' ? 'facebook' : $platform_filter]); ?>"
-                            class="aif-pill <?php echo $page_filter === (int)$fp->id ? 'active' : ''; ?>">
-                            <?php echo esc_html($fp->page_name); ?>
-                        </a>
-                    <?php endforeach; ?>
+                <div class="aif-filter-group" style="margin-left: 15px; border-left: 1px solid var(--aif-border-light); padding-left: 15px;">
+                    <span class="aif-filter-label">Fanpage:</span>
+                    <div class="aif-pill-group">
+                        <a href="<?php echo add_query_arg(['fanpage_id' => 0, 'platform' => $platform_filter === 'website' ? 'all' : $platform_filter]); ?>"
+                            class="aif-pill <?php echo $page_filter === 0 ? 'active' : ''; ?>">Tất cả</a>
+                        <?php foreach ($all_pages as $fp): ?>
+                            <a href="<?php echo add_query_arg(['fanpage_id' => $fp->id, 'platform' => $platform_filter === 'website' ? 'facebook' : $platform_filter]); ?>"
+                                class="aif-pill <?php echo $page_filter === (int)$fp->id ? 'active' : ''; ?>">
+                                <?php echo esc_html($fp->page_name); ?>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
                 </div>
-            </div>
             <?php endif; ?>
         </div>
     </div>
@@ -398,9 +422,15 @@ foreach ($top_posts as $tp) {
         }
 
         @keyframes aif-spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
         }
+
         .spin {
             animation: aif-spin 1s linear infinite;
             display: inline-block;
@@ -476,170 +506,185 @@ foreach ($top_posts as $tp) {
             </span>
         </div>
         <div class="aif-table-scroll-wrap">
-        <table class="wp-list-table widefat fixed striped">
-            <thead>
-                <tr>
-                    <th style="width: 50px; padding-left: 20px; text-align: center;">STT</th>
-                    <th style="width: 250px;"><a
-                            href="<?php echo add_query_arg(['orderby' => 'id', 'order' => ($orderby == 'id' && $order == 'DESC' ? 'ASC' : 'DESC')]); ?>">Bài
-                            viết</a></th>
-                    <th style="width: 70px; text-align: center;">Media</th>
-                    <th style="width: 120px;">Tác giả</th>
-                    <th style="width: 100px; text-align: center;"><a
-                            href="<?php echo add_query_arg(['orderby' => 'likes_count', 'order' => ($orderby == 'likes_count' && $order == 'DESC' ? 'ASC' : 'DESC')]); ?>">Likes</a>
-                    </th>
-                    <th style="width: 100px; text-align: center;"><a
-                            href="<?php echo add_query_arg(['orderby' => 'shares_count', 'order' => ($orderby == 'shares_count' && $order == 'DESC' ? 'ASC' : 'DESC')]); ?>">Shares</a>
-                    </th>
-                    <th style="width: 100px; text-align: center;"><a
-                            href="<?php echo add_query_arg(['orderby' => 'comments_count', 'order' => ($orderby == 'comments_count' && $order == 'DESC' ? 'ASC' : 'DESC')]); ?>">Comments</a>
-                    </th>
-                    <th style="width: 150px; text-align: center;">Tương tác (%)</th>
-                    <th style="width: 120px;"><a
-                            href="<?php echo add_query_arg(['orderby' => 'created_at', 'order' => ($orderby == 'created_at' && $order == 'DESC' ? 'ASC' : 'DESC')]); ?>">Ngày
-                            đăng</a></th>
-                    <th style="width: 80px; text-align: right; padding-right: 20px;">Sync</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if (!empty($results)): ?>
-                    <?php $stt = 1; ?>
-                    <?php foreach ($results as $row):
-                        $edit_url = admin_url('admin.php?page=ai-fanpage-post-detail&id=' . $row->post_id);
-                        $total_eng = $row->likes_count + $row->shares_count + $row->comments_count;
-                        $total_all_eng = ($summary->total_likes + $summary->total_shares + $summary->total_comments) ?: 1;
-                        $eng_rate = ($total_eng / $total_all_eng) * 100;
+            <table class="wp-list-table widefat fixed striped">
+                <thead>
+                    <tr>
+                        <th style="width: 50px; padding-left: 20px; text-align: center;">STT</th>
+                        <th style="width: 250px;"><a
+                                href="<?php echo add_query_arg(['orderby' => 'id', 'order' => ($orderby == 'id' && $order == 'DESC' ? 'ASC' : 'DESC')]); ?>">Bài
+                                viết</a></th>
+                        <th style="width: 70px; text-align: center;">Media</th>
+                        <th style="width: 120px;">Tác giả</th>
+                        <th style="width: 100px; text-align: center;"><a
+                                href="<?php echo add_query_arg(['orderby' => 'likes_count', 'order' => ($orderby == 'likes_count' && $order == 'DESC' ? 'ASC' : 'DESC')]); ?>">Likes</a>
+                        </th>
+                        <th style="width: 100px; text-align: center;"><a
+                                href="<?php echo add_query_arg(['orderby' => 'shares_count', 'order' => ($orderby == 'shares_count' && $order == 'DESC' ? 'ASC' : 'DESC')]); ?>">Shares</a>
+                        </th>
+                        <th style="width: 100px; text-align: center;"><a
+                                href="<?php echo add_query_arg(['orderby' => 'comments_count', 'order' => ($orderby == 'comments_count' && $order == 'DESC' ? 'ASC' : 'DESC')]); ?>">Comments</a>
+                        </th>
+                        <th style="width: 150px; text-align: center;">Tương tác (%)</th>
+                        <th style="width: 120px;"><a
+                                href="<?php echo add_query_arg(['orderby' => 'created_at', 'order' => ($orderby == 'created_at' && $order == 'DESC' ? 'ASC' : 'DESC')]); ?>">Ngày
+                                đăng</a></th>
+                        <th style="width: 80px; text-align: right; padding-right: 20px;">Sync</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (!empty($results)): ?>
+                        <?php $stt = 1; ?>
+                        <?php foreach ($results as $row):
+                            $edit_url = admin_url('admin.php?page=ai-fanpage-post-detail&id=' . $row->post_id);
+                            $total_eng = $row->likes_count + $row->shares_count + $row->comments_count;
+                            $total_all_eng = ($summary->total_likes + $summary->total_shares + $summary->total_comments) ?: 1;
+                            $eng_rate = ($total_eng / $total_all_eng) * 100;
 
-                        $last_sync = strtotime($row->metrics_updated_at);
-                        $is_old = ($last_sync && ($now - $last_sync) > 86400);
-                        $sync_dot = '<span class="dashicons dashicons-yes-alt" style="color:var(--aif-success); font-size: 18px;"></span>';
+                            $last_sync = strtotime($row->metrics_updated_at);
+                            $is_old = ($last_sync && ($now - $last_sync) > 86400);
+                            $sync_dot = '<span class="dashicons dashicons-yes-alt" style="color:var(--aif-success); font-size: 18px;"></span>';
 
-                        if (!$last_sync)
-                            $sync_dot = '<span class="dashicons dashicons-warning" style="color:var(--aif-text-muted); font-size: 18px;"></span>';
-                        elseif ($is_old)
-                            $sync_dot = '<span class="dashicons dashicons-warning" style="color:var(--aif-danger); font-size: 18px;"></span>';
+                            if (!$last_sync)
+                                $sync_dot = '<span class="dashicons dashicons-warning" style="color:var(--aif-text-muted); font-size: 18px;"></span>';
+                            elseif ($is_old)
+                                $sync_dot = '<span class="dashicons dashicons-warning" style="color:var(--aif-danger); font-size: 18px;"></span>';
                         ?>
-                        <tr class="row-result <?php echo empty($row->sync_result_id) ? 'missing-result' : ''; ?>"
-                            data-result-id="<?php echo $row->sync_result_id; ?>">
-                            <td style="padding-left: 20px; color: var(--aif-text-muted); text-align: center;">
-                                <?php echo ($offset + $stt++); ?>
-                            </td>
-                            <td>
-                                <div style="font-weight: 600;">
-                                    <a href="<?php echo esc_url($edit_url); ?>"
-                                        style="text-decoration:none; color: var(--aif-text-main);"><?php echo esc_html($row->title ?: '(Không tiêu đề)'); ?></a>
-                                </div>
-                                <div style="margin-top: 6px; display: flex; gap: 8px; flex-wrap: wrap;">
-                                    <?php
-                                    // Render một badge cho từng Fanpage đã đăng
-                                    $fb_entries = $fb_links_by_post[$row->post_id] ?? [];
-                                    foreach ($fb_entries as $fb_entry):
-                                    ?>
-                                        <a href="<?php echo esc_url($fb_entry['link']); ?>" target="_blank"
-                                            class="aif-platform-badge aif-fb-badge">
-                                            <span class="dashicons dashicons-facebook"
-                                                style="font-size: 14px; width: 14px; height: 14px;"></span>
-                                            <?php echo esc_html($fb_entry['page_name']); ?>
-                                        </a>
-                                    <?php endforeach; ?>
+                            <tr class="row-result <?php echo empty($row->sync_result_id) ? 'missing-result' : ''; ?>"
+                                data-result-id="<?php echo $row->sync_result_id; ?>">
+                                <td style="padding-left: 20px; color: var(--aif-text-muted); text-align: center;">
+                                    <?php echo ($offset + $stt++); ?>
+                                </td>
+                                <td>
+                                    <div style="font-weight: 600;">
+                                        <a href="<?php echo esc_url($edit_url); ?>"
+                                            style="text-decoration:none; color: var(--aif-text-main);"><?php echo esc_html($row->title ?: '(Không tiêu đề)'); ?></a>
+                                    </div>
+                                    <div style="margin-top: 6px; display: flex; gap: 8px; flex-wrap: wrap;">
+                                        <?php
+                                        // Render một badge cho từng Fanpage đã đăng
+                                        $fb_entries = $fb_links_by_post[$row->post_id] ?? [];
+                                        foreach ($fb_entries as $fb_entry):
+                                        ?>
+                                            <a href="<?php echo esc_url($fb_entry['link']); ?>" target="_blank"
+                                                class="aif-platform-badge aif-fb-badge">
+                                                <span class="dashicons dashicons-facebook"
+                                                    style="font-size: 14px; width: 14px; height: 14px;"></span>
+                                                <?php echo esc_html($fb_entry['page_name']); ?>
+                                            </a>
+                                        <?php endforeach; ?>
 
-                                    <?php if (!empty($row->web_link)): ?>
-                                        <a href="<?php echo esc_url($row->web_link); ?>" target="_blank"
-                                            class="aif-platform-badge aif-web-badge">
-                                            <span class="dashicons dashicons-admin-site"
-                                                style="font-size: 14px; width: 14px; height: 14px;"></span> WEBSITE
+                                        <?php
+                                        // Render badges for each website post type
+                                        $web_entries = $web_links_by_post[$row->post_id] ?? [];
+                                        if (!empty($web_entries)):
+                                            foreach ($web_entries as $web_entry):
+                                        ?>
+                                                <a href="<?php echo esc_url($web_entry['link']); ?>" target="_blank"
+                                                    class="aif-platform-badge aif-web-badge">
+                                                    <span class="dashicons dashicons-admin-site"
+                                                        style="font-size: 14px; width: 14px; height: 14px;"></span>
+                                                    <?php echo esc_html($web_entry['label']); ?>
+                                                </a>
+                                            <?php
+                                            endforeach;
+                                        elseif (!empty($row->web_link)):
+                                            ?>
+                                            <a href="<?php echo esc_url($row->web_link); ?>" target="_blank"
+                                                class="aif-platform-badge aif-web-badge">
+                                                <span class="dashicons dashicons-admin-site"
+                                                    style="font-size: 14px; width: 14px; height: 14px;"></span> Website
+                                            </a>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                                <td style="text-align: center; vertical-align: middle;">
+                                    <?php
+                                    $img_url = '';
+                                    $img_list = json_decode($row->images ?? '[]', true);
+                                    if (!empty($img_list) && is_array($img_list)) {
+                                        $first = $img_list[0];
+                                        if (strpos($first, 'wp-att-') === 0) {
+                                            $att_id  = intval(substr($first, 7));
+                                            $img_url = wp_get_attachment_image_url($att_id, 'thumbnail') ?: wp_get_attachment_url($att_id);
+                                        } else {
+                                            $img_url = AIF_URL . 'upload/' . $first;
+                                        }
+                                    } elseif (!empty($row->image_website)) {
+                                        $iw = $row->image_website;
+                                        if (strpos($iw, 'wp-att-') === 0) {
+                                            $att_id  = intval(substr($iw, 7));
+                                            $img_url = wp_get_attachment_image_url($att_id, 'thumbnail') ?: wp_get_attachment_url($att_id);
+                                        } else {
+                                            $img_url = AIF_URL . 'upload/' . $iw;
+                                        }
+                                    }
+                                    if ($img_url):
+                                    ?>
+                                        <a href="<?php echo esc_url($edit_url); ?>">
+                                            <img src="<?php echo esc_url($img_url); ?>"
+                                                loading="lazy"
+                                                style="width:50px; height:50px; border-radius:10px; object-fit:cover; border:1px solid var(--aif-border-light); display:block; margin:0 auto;">
                                         </a>
-                                    <?php endif; ?>
-                                </div>
-                            </td>
-                            <td style="text-align: center; vertical-align: middle;">
-                                <?php
-                                $img_url = '';
-                                $img_list = json_decode($row->images ?? '[]', true);
-                                if (!empty($img_list) && is_array($img_list)) {
-                                    $first = $img_list[0];
-                                    if (strpos($first, 'wp-att-') === 0) {
-                                        $att_id  = intval(substr($first, 7));
-                                        $img_url = wp_get_attachment_image_url($att_id, 'thumbnail') ?: wp_get_attachment_url($att_id);
-                                    } else {
-                                        $img_url = AIF_URL . 'upload/' . $first;
-                                    }
-                                } elseif (!empty($row->image_website)) {
-                                    $iw = $row->image_website;
-                                    if (strpos($iw, 'wp-att-') === 0) {
-                                        $att_id  = intval(substr($iw, 7));
-                                        $img_url = wp_get_attachment_image_url($att_id, 'thumbnail') ?: wp_get_attachment_url($att_id);
-                                    } else {
-                                        $img_url = AIF_URL . 'upload/' . $iw;
-                                    }
-                                }
-                                if ($img_url):
-                                ?>
-                                    <a href="<?php echo esc_url($edit_url); ?>">
-                                        <img src="<?php echo esc_url($img_url); ?>"
-                                             loading="lazy"
-                                             style="width:50px; height:50px; border-radius:10px; object-fit:cover; border:1px solid var(--aif-border-light); display:block; margin:0 auto;">
-                                    </a>
-                                <?php else: ?>
-                                    <div onclick="location.href='<?php echo esc_url($edit_url); ?>'"
-                                         style="width:50px; height:50px; border-radius:10px; background:#f1f5f9; display:flex; align-items:center; justify-content:center; color:#94a3b8; margin:0 auto; cursor:pointer;">
-                                        <span class="dashicons dashicons-images-alt2" style="font-size:20px; width:20px; height:20px;"></span>
-                                    </div>
-                                <?php endif; ?>
-                            </td>
-                            <td style="font-size: 13px;">
-                                <?php
-                                $author = $row->wp_author_id ? get_userdata($row->wp_author_id) : null;
-                                echo esc_html($author ? $author->display_name : '---');
-                                ?>
-                            </td>
-                            <td class="col-likes" style="text-align: center; font-weight: 600;">
-                                <?php echo number_format($row->likes_count); ?>
-                            </td>
-                            <td class="col-shares" style="text-align: center; font-weight: 600;">
-                                <?php echo number_format($row->shares_count); ?>
-                            </td>
-                            <td class="col-comments" style="text-align: center; font-weight: 600;">
-                                <?php echo number_format($row->comments_count); ?>
-                            </td>
-                            <td style="padding: 15px;">
-                                <div style="display: flex; align-items: center; gap: 10px;">
-                                    <div
-                                        style="flex:1; background: #f1f5f9; height: 6px; border-radius: 3px; overflow: hidden;">
-                                        <div
-                                            style="width: <?php echo min(100, $eng_rate * 5); ?>%; background: var(--aif-primary); height: 100%;">
+                                    <?php else: ?>
+                                        <div onclick="location.href='<?php echo esc_url($edit_url); ?>'"
+                                            style="width:50px; height:50px; border-radius:10px; background:#f1f5f9; display:flex; align-items:center; justify-content:center; color:#94a3b8; margin:0 auto; cursor:pointer;">
+                                            <span class="dashicons dashicons-images-alt2" style="font-size:20px; width:20px; height:20px;"></span>
                                         </div>
+                                    <?php endif; ?>
+                                </td>
+                                <td style="font-size: 13px;">
+                                    <?php
+                                    $author = $row->wp_author_id ? get_userdata($row->wp_author_id) : null;
+                                    echo esc_html($author ? $author->display_name : '---');
+                                    ?>
+                                </td>
+                                <td class="col-likes" style="text-align: center; font-weight: 600;">
+                                    <?php echo number_format($row->likes_count); ?>
+                                </td>
+                                <td class="col-shares" style="text-align: center; font-weight: 600;">
+                                    <?php echo number_format($row->shares_count); ?>
+                                </td>
+                                <td class="col-comments" style="text-align: center; font-weight: 600;">
+                                    <?php echo number_format($row->comments_count); ?>
+                                </td>
+                                <td style="padding: 15px;">
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <div
+                                            style="flex:1; background: #f1f5f9; height: 6px; border-radius: 3px; overflow: hidden;">
+                                            <div
+                                                style="width: <?php echo min(100, $eng_rate * 5); ?>%; background: var(--aif-primary); height: 100%;">
+                                            </div>
+                                        </div>
+                                        <span
+                                            style="font-size: 11px; font-weight: 700; width: 35px;"><?php echo round($eng_rate, 1); ?>%</span>
                                     </div>
-                                    <span
-                                        style="font-size: 11px; font-weight: 700; width: 35px;"><?php echo round($eng_rate, 1); ?>%</span>
-                                </div>
-                            </td>
-                            <td style="font-size: 12px; color: var(--aif-text-muted);">
-                                <?php echo date('d/m/Y', strtotime($row->created_at)); ?><br>
-                                <small><?php echo date('H:i', strtotime($row->created_at)); ?></small>
-                            </td>
-                            <td class="col-sync-status" style="text-align: right; padding-right: 20px;">
-                                <?php
-                                if (empty($row->sync_result_id)) {
-                                    echo '<span class="dashicons dashicons-no" style="color:var(--aif-danger); font-size: 18px;" title="Thiếu dữ liệu (Chưa có ID bài đăng)"></span>';
-                                } else {
-                                    echo '<div class="sync-indicator">' . $sync_dot . '</div>';
-                                }
-                                ?>
+                                </td>
+                                <td style="font-size: 12px; color: var(--aif-text-muted);">
+                                    <?php echo date('d/m/Y', strtotime($row->created_at)); ?><br>
+                                    <small><?php echo date('H:i', strtotime($row->created_at)); ?></small>
+                                </td>
+                                <td class="col-sync-status" style="text-align: right; padding-right: 20px;">
+                                    <?php
+                                    if (empty($row->sync_result_id)) {
+                                        echo '<span class="dashicons dashicons-no" style="color:var(--aif-danger); font-size: 18px;" title="Thiếu dữ liệu (Chưa có ID bài đăng)"></span>';
+                                    } else {
+                                        echo '<div class="sync-indicator">' . $sync_dot . '</div>';
+                                    }
+                                    ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <tr>
+                            <td colspan="10" style="text-align: center; padding: 40px; color: var(--aif-text-muted);">
+                                <span class="dashicons dashicons-info"
+                                    style="font-size: 32px; width: 32px; height: 32px; margin-bottom: 10px; display: block; margin-left: auto; margin-right: auto;"></span>
+                                Không có dữ liệu bài viết đã đăng trong khoảng thời gian này.
                             </td>
                         </tr>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <tr>
-                        <td colspan="10" style="text-align: center; padding: 40px; color: var(--aif-text-muted);">
-                            <span class="dashicons dashicons-info"
-                                style="font-size: 32px; width: 32px; height: 32px; margin-bottom: 10px; display: block; margin-left: auto; margin-right: auto;"></span>
-                            Không có dữ liệu bài viết đã đăng trong khoảng thời gian này.
-                        </td>
-                    </tr>
-                <?php endif; ?>
-            </tbody>
-        </table>
+                    <?php endif; ?>
+                </tbody>
+            </table>
         </div><!-- end .aif-table-scroll-wrap -->
 
         <!-- Pagination -->
@@ -667,15 +712,14 @@ foreach ($top_posts as $tp) {
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-    jQuery(document).ready(function ($) {
+    jQuery(document).ready(function($) {
         // --- Charts Implementation ---
         const ctxEng = document.getElementById('engagementChart').getContext('2d');
         new Chart(ctxEng, {
             type: 'line',
             data: {
                 labels: <?php echo json_encode($chart_labels); ?>,
-                datasets: [
-                    {
+                datasets: [{
                         label: 'Likes',
                         data: <?php echo json_encode($chart_likes); ?>,
                         borderColor: '#3b82f6',
@@ -695,16 +739,30 @@ foreach ($top_posts as $tp) {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 6 } } },
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            boxWidth: 6
+                        }
+                    }
+                },
                 scales: {
-                    y: { 
-                        beginAtZero: true, 
-                        grid: { display: false },
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            display: false
+                        },
                         ticks: {
                             stepSize: 1
                         }
                     },
-                    x: { grid: { display: false } }
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
                 }
             }
         });
@@ -725,22 +783,32 @@ foreach ($top_posts as $tp) {
                 indexAxis: 'y',
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
                 scales: {
-                    x: { 
-                        beginAtZero: true, 
-                        grid: { display: false },
+                    x: {
+                        beginAtZero: true,
+                        grid: {
+                            display: false
+                        },
                         ticks: {
                             stepSize: 1
                         }
                     },
-                    y: { grid: { display: false } }
+                    y: {
+                        grid: {
+                            display: false
+                        }
+                    }
                 }
             }
         });
 
         // Auto sync visible rows on load
-        $('.row-result').each(function () {
+        $('.row-result').each(function() {
             var $row = $(this);
             var resultId = $row.data('result-id');
             if (!resultId) return;
@@ -756,7 +824,7 @@ foreach ($top_posts as $tp) {
                     nonce: aif_ajax.nonce,
                     id: resultId
                 },
-                success: function (response) {
+                success: function(response) {
                     if (response.success) {
                         var data = response.data;
                         $row.find('.col-likes').text(data.likes.toLocaleString());
