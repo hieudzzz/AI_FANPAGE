@@ -826,9 +826,10 @@ class AIF_Facebook_Manager
             return [$url ?: '', ($path && file_exists($path)) ? $path : null];
         }
 
-        // Plugin upload folder
-        $url  = AIF_URL  . 'upload/' . $value;
-        $path = AIF_PATH . 'upload/' . $value;
+        // Plugin upload folder - strip potential folder prefix (e.g. "Folder/image.jpg")
+        $basename = basename(str_replace('\\', '/', $value));
+        $url  = AIF_URL  . 'upload/' . $basename;
+        $path = AIF_PATH . 'upload/' . $basename;
         return [$url, $path];
     }
 }

@@ -221,24 +221,34 @@ $counts = $db->get_counts();
 
                             <td class="aif-text-center">
                                 <?php
-                                $img_list = json_decode($post->images, true);
-                                if (!empty($img_list) && is_array($img_list)):
+                                $img_url = '';
+                                $img_list = json_decode($post->images ?? '[]', true);
+                                
+                                // Try images gallery first
+                                if (!empty($img_list) && is_array($img_list)) {
                                     $first_img = $img_list[0];
-                                    // Hỗ trợ cả WP attachment (wp-att-XXX) lẫn file upload thường
-                                    if (strpos($first_img, 'wp-att-') === 0) {
+                                } elseif (!empty($post->image_website)) {
+                                    // Fallback to website image
+                                    $first_img = $post->image_website;
+                                } else {
+                                    $first_img = '';
+                                }
+
+                                if (!empty($first_img)) {
+                                    if (strpos($first_img, 'http') === 0) {
+                                        $img_url = $first_img;
+                                    } elseif (strpos($first_img, 'wp-att-') === 0) {
                                         $att_id  = intval(substr($first_img, 7));
                                         $img_url = wp_get_attachment_image_url($att_id, 'thumbnail') ?: wp_get_attachment_url($att_id);
                                     } else {
-                                        // $first_img có thể là "folder\filename" hoặc chỉ "filename"
-                                        // File luôn lưu flat trong /upload/ nên chỉ cần lấy basename
+                                        // Standard upload - strip folder prefix
                                         $basename = basename(str_replace('\\', '/', $first_img));
                                         $img_url  = AIF_URL . 'upload/' . $basename;
                                     }
-                                    if ($img_url):
-                                        echo '<a href="' . esc_url($edit_link) . '"><img src="' . esc_url($img_url) . '" class="aif-post-thumbnail" loading="lazy" style="cursor:pointer;"></a>';
-                                    else:
-                                        echo '<div class="aif-no-thumbnail" onclick="location.href=\'' . esc_url($edit_link) . '\'" style="cursor:pointer;"><span class="dashicons dashicons-images-alt2"></span></div>';
-                                    endif;
+                                }
+
+                                if ($img_url):
+                                    echo '<a href="' . esc_url($edit_link) . '"><img src="' . esc_url($img_url) . '" class="aif-post-thumbnail" loading="lazy" style="cursor:pointer;"></a>';
                                 else:
                                     echo '<div class="aif-no-thumbnail" onclick="location.href=\'' . esc_url($edit_link) . '\'" style="cursor:pointer;"><span class="dashicons dashicons-images-alt2"></span></div>';
                                 endif;

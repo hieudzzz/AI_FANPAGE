@@ -601,25 +601,29 @@ foreach ($top_posts as $tp) {
                                     <?php
                                     $img_url = '';
                                     $img_list = json_decode($row->images ?? '[]', true);
+                                    
                                     if (!empty($img_list) && is_array($img_list)) {
                                         $first = $img_list[0];
-                                        if (strpos($first, 'wp-att-') === 0) {
+                                    } elseif (!empty($row->image_website)) {
+                                        $first = $row->image_website;
+                                    } else {
+                                        $first = '';
+                                    }
+
+                                    if (!empty($first)) {
+                                        if (strpos($first, 'http') === 0) {
+                                            $img_url = $first;
+                                        } elseif (strpos($first, 'wp-att-') === 0) {
                                             $att_id  = intval(substr($first, 7));
                                             $img_url = wp_get_attachment_image_url($att_id, 'thumbnail') ?: wp_get_attachment_url($att_id);
                                         } else {
-                                            $img_url = AIF_URL . 'upload/' . $first;
-                                        }
-                                    } elseif (!empty($row->image_website)) {
-                                        $iw = $row->image_website;
-                                        if (strpos($iw, 'wp-att-') === 0) {
-                                            $att_id  = intval(substr($iw, 7));
-                                            $img_url = wp_get_attachment_image_url($att_id, 'thumbnail') ?: wp_get_attachment_url($att_id);
-                                        } else {
-                                            $img_url = AIF_URL . 'upload/' . $iw;
+                                            // Standard upload - strip folder prefix
+                                            $basename = basename(str_replace('\\', '/', $first));
+                                            $img_url  = AIF_URL . 'upload/' . $basename;
                                         }
                                     }
-                                    if ($img_url):
                                     ?>
+                                    <?php if ($img_url): ?>
                                         <a href="<?php echo esc_url($edit_url); ?>">
                                             <img src="<?php echo esc_url($img_url); ?>"
                                                 loading="lazy"
