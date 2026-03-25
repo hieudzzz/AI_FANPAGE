@@ -207,14 +207,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && check_admin_referer('aif_save_post'
                 $fb_manager->process_queue();
                 $updated_post = $db->get($post_id);
                 if ($updated_post && $updated_post->status === 'Posted successfully') {
-                    $_SESSION['aif_message'] = 'Đã đăng bài thành công lên Fanpage!';
+                    // Determine which platforms were targeted for a more accurate message
+                    $has_fb = false;
+                    $has_web = false;
+                    if (!empty($targets_data)) {
+                        foreach ($targets_data as $target) {
+                            if (($target['platform'] ?? 'facebook') === 'website') $has_web = true;
+                            else $has_fb = true;
+                        }
+                    }
+
+                    if ($has_fb && $has_web) {
+                        $_SESSION['aif_message'] = 'Đã đăng bài thành công lên Fanpage và Website!';
+                    } elseif ($has_web) {
+                        $_SESSION['aif_message'] = 'Đã đăng bài thành công lên Website!';
+                    } else {
+                        $_SESSION['aif_message'] = 'Đã đăng bài thành công lên Fanpage!';
+                    }
                 } elseif ($updated_post && strpos($updated_post->status, 'failed') !== false) {
                     $_SESSION['aif_message'] = 'Lỗi khi đăng bài: ' . $updated_post->status;
                 }
             }
 
-            // Final Redirect
-            $redirect_url = admin_url('admin.php?page=ai-fanpage-post-detail&id=' . $post_id . '&aif_msg=saved');
+            // Final Redirect - avoid double success msg
+            $msg_param = $trigger_process_now ? '' : '&aif_msg=saved';
+            $redirect_url = admin_url('admin.php?page=ai-fanpage-post-detail&id=' . $post_id . $msg_param);
             echo "<script>window.location.href='$redirect_url';</script>";
             exit;
         } else {
@@ -250,7 +267,7 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($json_data) && isset($json
     <div class="aif-header-section">
         <h1>
             <span class="dashicons dashicons-edit-page" style="color: var(--aif-primary); font-size: 24px;"></span>
-            <?php echo $post_id ? 'Chi tiết bài viết #' . (isset($post->stt) ? $post->stt : $post_id) : 'Tạo bài viết mới'; ?>
+            <?php echo $post_id ? 'Chi tiết bài viết' . (isset($post->stt) ? ' #' . $post->stt : '')    : 'Tạo bài viết mới'; ?>
         </h1>
         <div style="display: flex; align-items: center; gap: 15px;">
             <?php

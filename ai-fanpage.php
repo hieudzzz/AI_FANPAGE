@@ -2096,7 +2096,22 @@ class AI_Fanpage
                         if ($added_count > 0) {
                             if (!$is_scheduled) {
                                 $fb_manager->process_queue();
-                                $status_msg = 'Đã thêm vào hàng chờ & đang đăng bài...';
+                                
+                                // Fetch fresh state to see if it's already posted
+                                $check_post = $db->get($post_id);
+                                if ($check_post && $check_post->status === 'Posted successfully') {
+                                    $has_fb = false;
+                                    $has_web = false;
+                                    foreach ($targets as $t) {
+                                        if (($t['platform'] ?? 'facebook') === 'website') $has_web = true;
+                                        else $has_fb = true;
+                                    }
+                                    if ($has_fb && $has_web) $status_msg = 'Đã đăng bài thành công lên Fanpage và Website!';
+                                    elseif ($has_web) $status_msg = 'Đã đăng bài thành công lên Website!';
+                                    else $status_msg = 'Đã đăng bài thành công lên Fanpage!';
+                                } else {
+                                    $status_msg = 'Đã thêm vào hàng chờ & đang đăng bài...';
+                                }
                             } else {
                                 $status_msg = 'Đã lên lịch đăng bài (' . $post->time_posting . ')';
                             }
