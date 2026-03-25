@@ -1099,4 +1099,100 @@ jQuery(document).ready(function ($) {
     // wpUrlMap đã được PHP localize sẵn, uploadUrl dùng làm fallback cho plugin files
     initModalSelected();
     updateMediaPreview();
+
+    // =========================================================
+    // 10. AI Time Suggestion
+    // =========================================================
+    $('#btn-suggest-time').on('click', function () {
+        const title    = $('#aif-title').val();
+        const content  = $('#aif-caption').val();
+        const industry = $('#aif-industry').val();
+        const platform = $('#aif-platform').val();
+
+        if (!title && !content) {
+            if (window.AIF_Toast) AIF_Toast.show('Cần tiêu đề hoặc nội dung để AI gợi ý thời gian.', 'error');
+            return;
+        }
+
+        const $btn = $(this);
+        const originalHtml = $btn.html();
+        $btn.prop('disabled', true).html('<span class="spinner is-active" style="float:none; margin:0 5px 0 0;"></span> Đang tính...');
+
+        $.ajax({
+            url: ajaxUrl, // Match existing ajaxUrl variable
+            type: 'POST',
+            data: {
+                action: 'aif_suggest_time',
+                nonce: nonce,
+                title: title,
+                content: content,
+                industry: industry,
+                platform: platform
+            },
+            success: function (res) {
+                if (res.success && res.data.suggestions) {
+                    let suggestions = res.data.suggestions;
+                    // Robust check: if it's an object with numeric keys, convert to array
+                    if (!Array.isArray(suggestions)) {
+                        suggestions = Object.values(suggestions);
+                    }
+                    // If nested [[...]] or { "data": [...] }, flatten
+                    if (suggestions.length === 1 && Array.isArray(suggestions[0])) {
+                        suggestions = suggestions[0];
+                    }
+                    
+                    if (!suggestions.length) {
+                        if (window.AIF_Toast) AIF_Toast.show('AI không tìm thấy mốc thời gian phù hợp.', 'warning');
+                        console.log('Empty suggestions array:', res.data);
+                        return;
+                    }
+                    let html = '';
+                    console.log('AI Suggestions:', suggestions);
+                    suggestions.forEach(s => {
+                        const timeStr = s.time || s.datetime || s.posting_time || s.scheduled_time;
+                        if (!timeStr) return; // Skip invalid entries
+                        
+                        // date-time-local requires YYYY-MM-DDTHH:MM
+                        const dtValue = timeStr.replace(' ', 'T');
+                        const reason  = s.reason || s.explanation || 'Gợi ý từ AI';
+                        html += `<button type="button" class="aif-time-chip" data-time="${dtValue}" title="${reason}" style="padding:5px 10px; font-size:11px; background:#fff; border:1px solid #e2e8f0; border-radius:20px; cursor:pointer; color:#475569; transition:all 0.2s; white-space:nowrap;">
+                                    <b>${timeStr}</b>
+                                 </button>`;
+                    });
+                    $('#aif-time-suggestions').html(html).fadeIn().css('display', 'flex');
+
+                    // Apply suggestion click
+                    $('.aif-time-chip').on('click', function() {
+                        const val = $(this).data('time');
+                        $('#aif-schedule-input').val(val);
+                        if (window.AIF_Toast) AIF_Toast.show('Đã áp dụng thời gian: ' + $(this).find('b').text(), 'success');
+                        
+                        // Highlight selected chip
+                        $('.aif-time-chip').css({ 'background': '#fff', 'border-color': '#e2e8f0', 'color': '#475569' });
+                        $(this).css({ 'background': '#eff6ff', 'border-color': '#3b82f6', 'color': '#3b82f6' });
+                    });
+                    
+                    // Add simple hover effect
+                    $('.aif-time-chip').hover(function() {
+                        $(this).css('border-color', '#3b82f6');
+                    }, function() {
+                        if (!$(this).hasClass('active-chip')) {
+                            $(this).css('border-color', '#e2e8f0');
+                        }
+                    });
+                } else {
+                    const error = res.data || 'Lỗi gợi ý thời gian';
+                    if (window.AIF_Toast) AIF_Toast.show(error, 'error');
+                    console.error('AI Time Suggest Error:', res);
+                }
+            },
+            error: function (xhr, stt, err) {
+                if (window.AIF_Toast) AIF_Toast.show('Lỗi kết nối máy chủ khi gợi ý thời gian.', 'error');
+                console.error('AJAX Error:', err);
+            },
+            complete: function () {
+                $btn.prop('disabled', false).html(originalHtml);
+            }
+        });
+    });
 });

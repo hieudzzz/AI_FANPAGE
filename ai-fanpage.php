@@ -74,6 +74,7 @@ class AI_Fanpage
         add_action('wp_ajax_aif_generate_variations', [$this, 'handle_generate_variations']);
         add_action('wp_ajax_aif_save_custom_tone', [$this, 'handle_save_custom_tone']);
         add_action('wp_ajax_aif_delete_custom_tone', [$this, 'handle_delete_custom_tone']);
+        add_action('wp_ajax_aif_suggest_time', [$this, 'handle_suggest_time']);
         add_action('wp_ajax_aif_smart_check', [$this, 'handle_smart_check']);
         add_action('wp_ajax_aif_bulk_process_item', [$this, 'handle_bulk_process_item']);
         add_action('wp_ajax_aif_get_post_details', [$this, 'handle_get_post_details']);
@@ -2596,6 +2597,29 @@ class AI_Fanpage
         }
 
         wp_send_json_success($activities);
+    }
+
+    public function handle_suggest_time()
+    {
+        check_ajax_referer('aif_nonce', 'nonce');
+
+        $title    = isset($_POST['title'])    ? sanitize_text_field(wp_unslash($_POST['title']))    : '';
+        $content  = isset($_POST['content'])  ? wp_kses_post(wp_unslash($_POST['content']))         : '';
+        $industry = isset($_POST['industry']) ? sanitize_text_field(wp_unslash($_POST['industry'])) : '';
+        $platform = isset($_POST['platform']) ? sanitize_text_field(wp_unslash($_POST['platform'])) : 'facebook';
+
+        if (empty($title) && empty($content)) {
+            wp_send_json_error('Cần tiêu đề hoặc nội dung để gợi ý thời gian.');
+        }
+
+        $service = new AIF_AI_Generator();
+        $suggestions = $service->suggest_time($title, $content, $industry, $platform);
+
+        if (!empty($suggestions)) {
+            wp_send_json_success(['suggestions' => $suggestions]);
+        } else {
+            wp_send_json_error('AI không thể đưa ra gợi ý lúc này. Vui lòng thử lại.');
+        }
     }
 }
 

@@ -237,6 +237,53 @@ class AIF_AI_Generator
         return $this->parse_revise_response($ai_response);
     }
 
+    /**
+     * Suggest 3 optimal posting times based on content and industry.
+     */
+    public function suggest_time($title, $content, $industry, $platform)
+    {
+        $prompt  = "Bạn là Chuyên gia Tối ưu hóa Tương tác mạng xã hội.\n";
+        $prompt .= "NHIỆM VỤ: Gợi ý 3 mốc thời gian đăng bài (giờ và phút) tốt nhất để đạt tương tác cao nhất cho bài viết sau.\n\n";
+        $prompt .= "--- THÔNG TIN BÀI VIẾT ---\n";
+        $prompt .= "- Ngành hàng: $industry\n";
+        $prompt .= "- Tiêu đề: $title\n";
+        $prompt .= "- Nội dung: " . wp_trim_words($content, 50, '...') . "\n";
+        $prompt .= "- Nền tảng: $platform\n\n";
+        $prompt .= "--- YÊU CẦU ---\n";
+        $prompt .= "1. Gợi ý 3 mốc thời gian cụ thể (giờ:phút) trong ngày hôm nay hoặc ngày mai.\n";
+        $prompt .= "2. Thời gian phải ở định dạng: YYYY-MM-DD HH:MM.\n";
+        $prompt .= "3. Giải thích ngắn gọn lý do chọn mốc giờ đó (insight khách hàng).\n\n";
+        $prompt .= "QUAN TRỌNG: Trả về duy nhất 1 JSON array gồm 3 objects. \n";
+        $prompt .= "Ví dụ định dạng trả về:\n";
+        $prompt .= "[\n  {\"time\": \"2024-03-25 09:00\", \"reason\": \"Mô tả lý do chọn mốc này...\"},\n  {\"time\": \"2024-03-25 15:30\", \"reason\": \"...\"},\n  {\"time\": \"2024-03-25 20:15\", \"reason\": \"...\"}\n]\n";
+        $prompt .= "Mỗi object BẮT BUỘC có đúng 2 key: \"time\" (định dạng YYYY-MM-DD HH:mm) và \"reason\".";
+
+        $system = 'You are a social media optimization expert. Return ONLY a valid JSON array of 3 objects with keys "time" and "reason". Language: Vietnamese.';
+
+        $ai_response = $this->call_ai($prompt, $system, true);
+
+        if (!$ai_response || (is_array($ai_response) && isset($ai_response['error']))) {
+            return [];
+        }
+
+        // Parse JSON array
+        $raw = $ai_response;
+        if (is_string($raw)) {
+            $raw = preg_replace('/^```(?:json)?\s*/i', '', trim($raw));
+            $raw = preg_replace('/\s*```$/', '', $raw);
+            $decoded = json_decode($raw, true);
+        } else {
+            $decoded = $ai_response;
+        }
+
+        // If returned as { "suggestions": [...] } instead of [...]
+        if (is_array($decoded) && count($decoded) === 1 && is_array(current($decoded))) {
+            $decoded = current($decoded);
+        }
+
+        return is_array($decoded) ? array_values($decoded) : [];
+    }
+
     // =========================================================================
     // ROUTING — chọn provider theo cài đặt
     // =========================================================================

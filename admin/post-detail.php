@@ -755,9 +755,16 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($json_data) && isset($json
                             <hr style="margin: 20px 0; border: 0; border-top: 1px solid var(--aif-border-light);">
 
                             <div class="aif-form-group">
-                                <label>Lên lịch đăng bài</label>
-                                <input type="datetime-local" name="aif_schedule"
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                                    <label style="margin-bottom:0;">Lên lịch đăng bài</label>
+                                    <button type="button" id="btn-suggest-time" class="aif-btn-ai-mini" title="AI gợi ý thời giờ tối ưu" style="padding:4px 10px; font-size:11px; font-weight:700; background:#f0f7ff; color:#3b82f6; border:1px solid #bfdbfe; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:4px;">
+                                        <span class="dashicons dashicons-calendar-alt" style="font-size:13px; width:13px; height:13px;"></span>
+                                        ✨ AI Gợi ý
+                                    </button>
+                                </div>
+                                <input type="datetime-local" name="aif_schedule" id="aif-schedule-input"
                                     value="<?php echo $current_schedule; ?>" class="aif-input">
+                                <div id="aif-time-suggestions" style="margin-top:8px; display:none; flex-wrap:wrap; gap:6px;"></div>
                             </div>
 
                             <div class="aif-form-group">
