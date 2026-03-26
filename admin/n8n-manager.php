@@ -40,36 +40,35 @@ if (!defined('ABSPATH'))
     </div>
 
     <!-- ===== TABS NAVIGATION ===== -->
-    <div class="aif-n8n-tabs">
-        <button class="aif-n8n-tab active" data-tab="chats">
+    <nav class="aif-n8n-tabs" role="tablist" aria-label="Quản lý AI Chat">
+        <button class="aif-n8n-tab active" data-tab="chats" role="tab" aria-selected="true" aria-controls="tab-chats">
             <span class="dashicons dashicons-format-chat"></span>
-            Phiên Chat
+            <span class="aif-tab-label">Phiên Chat</span>
             <span id="kpi-badge-chats" class="aif-tab-badge">0</span>
         </button>
-        <button class="aif-n8n-tab" data-tab="products">
+        <button class="aif-n8n-tab" data-tab="products" role="tab" aria-selected="false" aria-controls="tab-products">
             <span class="dashicons dashicons-cart"></span>
-            Kho Sản phẩm
+            <span class="aif-tab-label">Kho Sản phẩm</span>
             <span id="kpi-badge-products" class="aif-tab-badge">0</span>
         </button>
-        <button class="aif-n8n-tab" data-tab="leads">
+        <button class="aif-n8n-tab" data-tab="leads" role="tab" aria-selected="false" aria-controls="tab-leads">
             <span class="dashicons dashicons-groups"></span>
-            Khách hàng tiềm năng
+            <span class="aif-tab-label">Khách hàng tiềm năng</span>
             <span id="kpi-badge-leads" class="aif-tab-badge">0</span>
-            <span class="aif-lead-criteria-info" style="display: inline-flex; align-items: center; margin-left: 4px;">
-                <span class="dashicons dashicons-info-outline"
-                    style="font-size:14px; width:14px; height:14px; cursor:help; opacity:0.75;"></span>
+            <span class="aif-lead-criteria-info" title="Tiêu chí đánh giá khách hàng tiềm năng">
+                <span class="dashicons dashicons-info-outline"></span>
             </span>
         </button>
-        <button class="aif-n8n-tab" data-tab="settings">
+        <button class="aif-n8n-tab" data-tab="settings" role="tab" aria-selected="false" aria-controls="tab-settings">
             <span class="dashicons dashicons-admin-settings"></span>
-            Cài đặt
+            <span class="aif-tab-label">Cài đặt</span>
         </button>
-        <button class="aif-n8n-tab" data-tab="policies">
+        <button class="aif-n8n-tab" data-tab="policies" role="tab" aria-selected="false" aria-controls="tab-policies">
             <span class="dashicons dashicons-media-document"></span>
-            Chính sách
+            <span class="aif-tab-label">Chính sách</span>
             <span id="kpi-badge-policies" class="aif-tab-badge">0</span>
         </button>
-    </div>
+    </nav>
 
     <!-- ===== TAB CONTENTS (partials) ===== -->
     <?php

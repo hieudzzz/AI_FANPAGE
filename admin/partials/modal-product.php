@@ -3,6 +3,7 @@
 <!-- ===== MODAL: Product Add/Edit ===== -->
 <div id="aif-product-modal" class="aif-modal">
     <div class="aif-modal-content">
+        <!-- Header -->
         <div class="aif-modal-header">
             <div class="aif-modal-header-decor-1"></div>
             <div class="aif-modal-header-decor-2"></div>
@@ -18,34 +19,64 @@
             <button type="button" class="aif-modal-close"
                 onclick="jQuery('#aif-product-modal').removeClass('active');">&#10005;</button>
         </div>
+
+        <!-- Body -->
         <div class="aif-modal-body">
             <form id="aif-product-form">
                 <input type="hidden" name="id" id="prod-id">
 
+                <!-- Product name -->
                 <div class="aif-form-group">
-                    <label class="aif-form-label">Tên sản phẩm <span class="aif-form-required">*</span></label>
+                    <label class="aif-form-label">
+                        <span class="aif-form-label-icon aif-form-label-icon-indigo">
+                            <span class="dashicons dashicons-tag"></span>
+                        </span>
+                        Tên sản phẩm <span class="aif-form-required">*</span>
+                    </label>
                     <input type="text" name="product_name" id="prod-name" required
                         placeholder="Ví dụ: Áo thun nam Cotton Premium">
                 </div>
 
+                <!-- Category + SKU row -->
                 <div class="aif-form-row">
-                    <div>
-                        <label class="aif-form-label">Danh mục</label>
+                    <div class="aif-form-group">
+                        <label class="aif-form-label">
+                            <span class="aif-form-label-icon aif-form-label-icon-violet">
+                                <span class="dashicons dashicons-category"></span>
+                            </span>
+                            Danh mục
+                        </label>
                         <input type="text" name="category" id="prod-cat" placeholder="Thời trang nam">
                     </div>
-                    <div>
-                        <label class="aif-form-label">SKU</label>
+                    <div class="aif-form-group">
+                        <label class="aif-form-label">
+                            <span class="aif-form-label-icon aif-form-label-icon-gray">
+                                <span class="dashicons dashicons-editor-code"></span>
+                            </span>
+                            SKU
+                        </label>
                         <input type="text" name="sku" id="prod-sku" placeholder="TSHIRT-001">
                     </div>
                 </div>
 
+                <!-- Price + Status row -->
                 <div class="aif-form-row">
-                    <div>
-                        <label class="aif-form-label">Giá bán (VNĐ)</label>
+                    <div class="aif-form-group">
+                        <label class="aif-form-label">
+                            <span class="aif-form-label-icon aif-form-label-icon-emerald">
+                                <span class="dashicons dashicons-money-alt"></span>
+                            </span>
+                            Giá bán (VNĐ)
+                        </label>
                         <input type="text" name="price" id="prod-price" placeholder="250.000" class="aif-input-price">
                     </div>
-                    <div>
-                        <label class="aif-form-label">Trạng thái</label>
+                    <div class="aif-form-group">
+                        <label class="aif-form-label">
+                            <span class="aif-form-label-icon aif-form-label-icon-amber">
+                                <span class="dashicons dashicons-visibility"></span>
+                            </span>
+                            Trạng thái
+                        </label>
                         <input type="hidden" name="status" id="prod-status" value="active">
                         <div class="aif-status-toggle">
                             <button type="button" class="aif-status-btn aif-status-btn-active active" data-value="active">
@@ -60,16 +91,24 @@
                     </div>
                 </div>
 
+                <!-- Description -->
                 <div class="aif-form-group">
-                    <label class="aif-form-label">Mô tả đặc điểm <span class="aif-form-hint">(Dành cho
-                            AI)</span></label>
+                    <label class="aif-form-label">
+                        <span class="aif-form-label-icon aif-form-label-icon-blue">
+                            <span class="dashicons dashicons-editor-alignleft"></span>
+                        </span>
+                        Mô tả đặc điểm <span class="aif-form-hint">(Dành cho AI)</span>
+                    </label>
                     <textarea name="description" id="prod-desc"
                         placeholder="Nhập thông số, ưu điểm nổi bật để AI tư vấn khách tốt hơn..."></textarea>
                 </div>
 
-                <div class="aif-modal-footer">
-                    <button type="button" class="aif-btn aif-btn-ghost"
-                        onclick="jQuery('#aif-product-modal').removeClass('active');">Hủy bỏ</button>
+                <!-- Footer -->
+                <div class="aif-modal-footer aif-modal-footer-bar">
+                    <button type="button" class="aif-btn aif-btn-outline"
+                        onclick="jQuery('#aif-product-modal').removeClass('active');">
+                        <span class="dashicons dashicons-no-alt"></span> Hủy bỏ
+                    </button>
                     <button type="submit" class="aif-btn aif-btn-primary">
                         <span class="dashicons dashicons-saved"></span> Lưu thông tin
                     </button>
