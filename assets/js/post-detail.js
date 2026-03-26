@@ -40,15 +40,11 @@ jQuery(document).ready(function ($) {
             }
             // Từ cache AJAX
             if (modalFilesCache) {
-                const f = modalFilesCache.find(function(fx) {
-                    const fkey = fx.folder ? fx.folder + '/' + fx.name : fx.name;
-                    return fkey === val;
-                });
+                const f = modalFilesCache.find(function(fx) { return fx.name === val; });
                 if (f) return f.url;
             }
-            // Fallback: uploadUrl + filename (strip folder prefix since files are flat on disk)
-            const basename = val.includes('/') ? val.substring(val.lastIndexOf('/') + 1) : val;
-            return uploadUrl + basename;
+            // Fallback: uploadUrl + filename
+            return uploadUrl + val;
         }
 
         modalSelected.forEach(function(val) {
@@ -155,6 +151,11 @@ jQuery(document).ready(function ($) {
         const val = $(this).data('val');
         modalSelected.delete(val);
         $('.aif-media-option input').filter(function () { return $(this).val() === val; }).prop('checked', false);
+        // Chỉ clear web thumbnail nếu ảnh bị xóa khác với ảnh đang set web
+        const webVal = $('#aif-image-website-input').val();
+        if (webVal && webVal === val) {
+            $('#aif-image-website-input').val('');
+        }
         updateMediaPreview();
     });
 
@@ -268,7 +269,7 @@ jQuery(document).ready(function ($) {
             html += '<div style="grid-column:1/-1;text-align:center;padding:40px;color:#94a3b8;">Không tìm thấy file nào.</div>';
         } else {
             files.forEach(function(f) {
-                const fileVal = f.folder ? f.folder + '/' + f.name : f.name;
+                const fileVal = f.name;
                 html += buildMediaCard(fileVal, f.url, f.url, false, f);
             });
         }
