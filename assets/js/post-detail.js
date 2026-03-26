@@ -178,8 +178,9 @@ jQuery(document).ready(function ($) {
     // =========================================================
     // 2. Modal Controls
     // =========================================================
-    let modalFilesCache  = null;   // cache toàn bộ files từ server
-    let modalFolderCache = null;   // cache folder list
+    let mediaCache       = {};     // Cache by folder: { folder_path: { files: [], folders: [] } }
+    let modalFilesCache  = null;   // Current files pointer
+    let modalFolderCache = null;   // Current folders pointer
     let modalCurFolder   = '';     // folder đang active trong modal
     let modalSelected    = new Set(); // set các value đã chọn — persistent qua các folder
     let wpUrlMap         = aif_post_detail.wp_att_urls || {}; // map wp-att-ID -> URL
@@ -195,10 +196,9 @@ jQuery(document).ready(function ($) {
 
     $('#aif-open-media-modal').on('click', function () {
         initModalSelected();
-        modalFilesCache  = null;  // reset để luôn fetch mới khi mở modal
-        modalFolderCache = null;
+        // Do NOT reset mediaCache here to keep data persistent
         $('#aif-media-modal').css('display', 'flex').hide().fadeIn(200);
-        loadModalMedia('');
+        loadModalMedia(modalCurFolder || ''); // Use last folder or root
     });
 
     $('#aif-close-media-modal, #aif-close-modal-x, #aif-media-modal').on('click', function (e) {
@@ -214,6 +214,16 @@ jQuery(document).ready(function ($) {
     function loadModalMedia(folder) {
         modalCurFolder = folder;
         const $grid = $('#aif-media-modal .aif-image-grid');
+
+        // Check cache
+        if (mediaCache[folder]) {
+            modalFilesCache  = mediaCache[folder].files;
+            modalFolderCache = mediaCache[folder].folders;
+            renderModalSidebar();
+            renderModalGrid();
+            return;
+        }
+
         $grid.html('<div style="grid-column:1/-1;text-align:center;padding:40px;color:#94a3b8;"><div class="spinner is-active" style="float:none;margin:0 auto 10px;"></div>Đang tải...</div>');
 
         $.post(ajaxUrl, { action: 'aif_media_get_folders', nonce: nonce, folder: folder })
@@ -222,6 +232,11 @@ jQuery(document).ready(function ($) {
                     $grid.html('<div style="grid-column:1/-1;text-align:center;padding:40px;color:#ef4444;">Lỗi tải ảnh: ' + (res && res.data ? res.data : 'Unknown') + '</div>');
                     return;
                 }
+                // Save to cache
+                mediaCache[folder] = {
+                    folders: res.data.folders,
+                    files:   res.data.files
+                };
                 modalFolderCache = res.data.folders;
                 modalFilesCache  = res.data.files;
                 renderModalSidebar();
@@ -337,8 +352,6 @@ jQuery(document).ready(function ($) {
     // Click folder trong sidebar modal
     $(document).on('click', '.aif-modal-folder-btn', function() {
         const folder = $(this).data('folder');
-        // Reset cache để load lại theo folder mới
-        modalFilesCache = null;
         loadModalMedia(folder);
     });
 
@@ -390,6 +403,10 @@ jQuery(document).ready(function ($) {
                     done++;
                     if (res.success && modalFilesCache) {
                         modalFilesCache.unshift(res.data);
+                        // Ensure cache is updated as well
+                        if (mediaCache[modalCurFolder]) {
+                            mediaCache[modalCurFolder].files = modalFilesCache;
+                        }
                     }
                     if (done === files.length) {
                         spinner.removeClass('is-active');
