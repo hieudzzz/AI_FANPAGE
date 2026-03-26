@@ -1290,13 +1290,25 @@ class AI_Fanpage
             $post_id_for_media = isset($_GET['id']) ? intval($_GET['id']) : 0;
             if ($post_id_for_media) {
                 global $wpdb;
-                $saved_images_raw = $wpdb->get_var($wpdb->prepare(
-                    "SELECT images FROM {$wpdb->prefix}aif_posts WHERE id = %d",
+                $saved_post = $wpdb->get_row($wpdb->prepare(
+                    "SELECT images, image_website FROM {$wpdb->prefix}aif_posts WHERE id = %d",
                     $post_id_for_media
                 ));
-                if ($saved_images_raw) {
-                    $saved = json_decode($saved_images_raw, true) ?: [];
-                    foreach ($saved as $v) {
+                if ($saved_post) {
+                    $all_media = [];
+                    // Add FB images
+                    if ($saved_post->images) {
+                        $fb_imgs = json_decode($saved_post->images, true) ?: [];
+                        $all_media = array_merge($all_media, $fb_imgs);
+                    }
+                    // Add Web image
+                    if ($saved_post->image_website) {
+                        $all_media[] = $saved_post->image_website;
+                    }
+                    
+                    // Filter unique and look up WP URLs
+                    $all_media = array_unique($all_media);
+                    foreach ($all_media as $v) {
                         if (strpos($v, 'wp-att-') === 0) {
                             $att_id = intval(substr($v, 7));
                             $url    = wp_get_attachment_url($att_id);

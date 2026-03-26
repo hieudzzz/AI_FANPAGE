@@ -31,19 +31,33 @@ jQuery(document).ready(function ($) {
 
         // Lấy URL: ưu tiên từ modalFilesCache, fallback DOM, fallback uploadUrl+val
         function resolveUrl(val) {
-            // WP attachment — từ wpUrlMap hoặc DOM
+            if (!val) return '';
+            
+            // 1. Try wpUrlMap first (most reliable for WP attachments)
+            if (wpUrlMap[val]) return wpUrlMap[val];
+
+            // 2. If WP attachment but not in map, try to find in DOM (modal grid)
             if (val.startsWith('wp-att-')) {
-                if (wpUrlMap[val]) return wpUrlMap[val];
-                const $inp = $('.aif-media-option input[value="' + val + '"]');
-                if ($inp.length) { wpUrlMap[val] = $inp.data('url'); return wpUrlMap[val]; }
+                const $inp = $(`.aif-media-option input[value="${val}"]`);
+                if ($inp.length && $inp.data('url')) {
+                    wpUrlMap[val] = $inp.data('url');
+                    return wpUrlMap[val];
+                }
+                // If still not found, we can't do much for WP-att without a URL
                 return '';
             }
-            // Từ cache AJAX
+
+            // 3. Try cache AJAX (modalFilesCache)
             if (modalFilesCache) {
-                const f = modalFilesCache.find(function(fx) { return fx.name === val; });
-                if (f) return f.url;
+                const f = modalFilesCache.find(fx => fx.name === val);
+                if (f && f.url) {
+                    // Cache it in wpUrlMap for future use even if folder changes
+                    wpUrlMap[val] = f.url;
+                    return f.url;
+                }
             }
-            // Fallback: uploadUrl + filename
+
+            // 4. Fallback: uploadUrl + filename (for plugin folder files)
             return uploadUrl + val;
         }
 
@@ -136,9 +150,14 @@ jQuery(document).ready(function ($) {
     $(document).on('click', '.aif-btn-set-web', function (e) {
         e.preventDefault();
         const filename = $(this).data('filename');
-        $('#aif-image-website-input').val(filename);
-        updateMediaPreview();
-        if (window.AIF_Toast) AIF_Toast.show('Đã chọn làm ảnh đại diện Website', 'success');
+        const url      = $(this).data('url');
+        
+        if (filename) {
+            $('#aif-image-website-input').val(filename);
+            if (url) wpUrlMap[filename] = url; // Cache the URL immediately
+            updateMediaPreview();
+            if (window.AIF_Toast) AIF_Toast.show('Đã chọn làm ảnh đại diện Website', 'success');
+        }
     });
 
     $(document).on('click', '.remove-web-media', function () {
@@ -151,11 +170,6 @@ jQuery(document).ready(function ($) {
         const val = $(this).data('val');
         modalSelected.delete(val);
         $('.aif-media-option input').filter(function () { return $(this).val() === val; }).prop('checked', false);
-        // Chỉ clear web thumbnail nếu ảnh bị xóa khác với ảnh đang set web
-        const webVal = $('#aif-image-website-input').val();
-        if (webVal && webVal === val) {
-            $('#aif-image-website-input').val('');
-        }
         updateMediaPreview();
     });
 
@@ -244,7 +258,11 @@ jQuery(document).ready(function ($) {
         let html = '';
 
         // ── Section: Ảnh WP đã chọn (chỉ hiện khi có) ──────────────────────
+        const webVal = $('#aif-image-website-input').val();
         const wpSelected = Array.from(modalSelected).filter(v => v.startsWith('wp-att-'));
+        if (webVal && webVal.startsWith('wp-att-') && !modalSelected.has(webVal)) {
+            wpSelected.push(webVal);
+        }
         if (wpSelected.length > 0 && !q) {
             html += `<div style="grid-column:1/-1; font-size:11px; font-weight:800; text-transform:uppercase;
                 letter-spacing:0.7px; color:#7c3aed; margin-bottom:4px; padding:4px 2px;
@@ -279,8 +297,10 @@ jQuery(document).ready(function ($) {
     }
 
     function buildMediaCard(val, url, thumbUrl, isWp, f) {
+        const webVal   = $('#aif-image-website-input').val();
         const checked  = modalSelected.has(val);
-        const border   = checked ? '#3b82f6' : 'transparent';
+        const isWeb    = (val === webVal);
+        const border   = isWeb ? 'var(--aif-primary)' : (checked ? '#3b82f6' : 'transparent');
         const isVideo  = val.toLowerCase().endsWith('.mp4');
         const label    = isWp
             ? `<div style="font-size:10px;border-radius:3px;background:#ede9fe;padding:1px 5px;color:#7c3aed;font-weight:700;">WP</div>`
@@ -293,7 +313,7 @@ jQuery(document).ready(function ($) {
             <span class="aif-lightbox-trigger dashicons ${isVideo ? 'dashicons-controls-play' : 'dashicons-search'}"
                 data-src="${url}"
                 style="position:absolute;top:10px;right:10px;z-index:10;background:rgba(15,23,42,0.6);color:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:14px;cursor:zoom-in;"></span>
-            <div class="img-wrapper" style="border:3px solid ${border};border-radius:12px;overflow:hidden;background:#f8fafc;aspect-ratio:1/1;">
+            <div class="img-wrapper" style="border:3px solid ${border}; border-radius:12px; overflow:hidden; background:#f8fafc; aspect-ratio:1/1; ${isWeb ? 'transform:scale(0.96);' : ''}">
                 ${isVideo
                     ? `<video src="${url}" style="width:100%;height:100%;object-fit:cover;pointer-events:none;"></video>`
                     : `<img src="${thumbUrl}" loading="lazy" style="width:100%;height:100%;object-fit:cover;">`}
@@ -302,8 +322,8 @@ jQuery(document).ready(function ($) {
                 ${label}
                 <button type="button" class="aif-btn-set-web"
                     data-filename="${val}" data-url="${url}"
-                    style="font-size:9px;padding:2px 5px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:4px;cursor:pointer;white-space:nowrap;">
-                    Set Web
+                    style="font-size:9px; padding:2px 5px; background:${isWeb ? 'var(--aif-primary)' : '#f1f5f9'}; border:1px solid ${isWeb ? 'var(--aif-primary)' : '#e2e8f0'}; border-radius:4px; cursor:pointer; white-space:nowrap; color:${isWeb ? '#fff' : 'inherit'};">
+                    ${isWeb ? 'Selected' : 'Set Web'}
                 </button>
             </div>
         </label>`;
