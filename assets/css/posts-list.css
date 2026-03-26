@@ -587,6 +587,69 @@ select.inline-edit-input {
     font-size: 14px;
 }
 
+/* ── Status Picker (pill buttons) ── */
+.aif-status-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 4px 0;
+}
+
+.aif-status-pick-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border: 1.5px solid transparent;
+    border-radius: 8px;
+    background: #f8fafc;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    color: var(--aif-text-muted);
+}
+
+.aif-status-pick-btn:hover {
+    background: #f1f5f9;
+    transform: translateX(2px);
+}
+
+.aif-status-pick-btn .aif-spb-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: #cbd5e1;
+    transition: all 0.15s ease;
+}
+
+/* Color-coded dots & active states */
+.aif-status-pick-btn.status-pending .aif-spb-dot { background: #64748b; }
+.aif-status-pick-btn.status-processing .aif-spb-dot { background: #3b82f6; }
+.aif-status-pick-btn.status-future .aif-spb-dot { background: #f59e0b; }
+
+.aif-status-pick-btn.status-pending.active {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #475569;
+}
+
+.aif-status-pick-btn.status-processing.active {
+    background: #eff6ff;
+    border-color: #93c5fd;
+    color: #1e40af;
+}
+
+.aif-status-pick-btn.status-future.active {
+    background: #fffbeb;
+    border-color: #fcd34d;
+    color: #92400e;
+}
+
 input[type="datetime-local"].inline-edit-input {
     padding: 4px 8px !important;
 }

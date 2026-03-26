@@ -447,6 +447,11 @@ jQuery(document).ready(function ($) {
                 // Reset the input back to original value so user can retry
                 input.val(originalValue);
                 cell.data('original-value', originalValue);
+                // Revert status picker active state
+                if (field === 'status') {
+                    cell.find('.aif-status-pick-btn').removeClass('active');
+                    cell.find('.aif-status-pick-btn[data-value="' + originalValue + '"]').addClass('active');
+                }
                 if (window.AIF_Toast) AIF_Toast.show('Lỗi: ' + res.data, 'error');
                 cell.find('.edit-mode').hide();
                 viewMode.show();
@@ -459,6 +464,11 @@ jQuery(document).ready(function ($) {
             // Reset the input back to original value so user can retry
             input.val(originalValue);
             cell.data('original-value', originalValue);
+            // Revert status picker active state
+            if (field === 'status') {
+                cell.find('.aif-status-pick-btn').removeClass('active');
+                cell.find('.aif-status-pick-btn[data-value="' + originalValue + '"]').addClass('active');
+            }
             if (window.AIF_Toast) AIF_Toast.show('Kết nối thất bại.', 'error');
             cell.find('.edit-mode').hide();
             viewMode.show();
@@ -784,6 +794,29 @@ jQuery(document).ready(function ($) {
         }
 
         processNext(0);
+    });
+
+
+    // --- Status Picker (pill buttons) ---
+    $(document).on('click', '.aif-status-pick-btn', function (e) {
+        e.stopPropagation(); // prevent editable-cell click from firing again
+
+        const btn = $(this);
+        const cell = btn.closest('.editable-cell');
+        const val = btn.data('value');
+
+        // Update hidden input
+        cell.find('.inline-edit-input').val(val);
+
+        // Visual: highlight clicked button
+        cell.find('.aif-status-pick-btn').removeClass('active');
+        btn.addClass('active');
+
+        // Trigger save immediately
+        const row = cell.closest('tr');
+        activeEditingRow = row;
+        row.addClass('row-editing');
+        saveCell(cell);
     });
 
 

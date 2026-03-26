@@ -387,17 +387,20 @@ $counts = $db->get_counts();
                                             class="aif-status-pill <?php echo $status_class; ?>"><?php echo esc_html($status_label); ?></span>
                                     </div>
                                     <div class="edit-mode" style="display:none;">
-                                        <div class="edit-mode-select-wrapper">
-                                            <select class="inline-edit-input">
-                                                <option value="To do" <?php selected($post->status, 'To do'); ?>>
-                                                    <?php echo AIF_Status::label('To do'); ?>
-                                                </option>
-                                                <option value="Content updated" <?php selected($post->status, 'Content updated'); ?>><?php echo AIF_Status::label('Content updated'); ?></option>
-                                                <option value="Done" <?php selected($post->status, 'Done'); ?>>
-                                                    <?php echo AIF_Status::label('Done'); ?>
-                                                </option>
-                                            </select>
-                                            <span class="dashicons dashicons-arrow-down-alt2"></span>
+                                        <input type="hidden" class="inline-edit-input" value="<?php echo esc_attr($post->status); ?>">
+                                        <div class="aif-status-picker">
+                                            <button type="button" class="aif-status-pick-btn status-pending <?php echo ($post->status === 'To do') ? 'active' : ''; ?>" data-value="To do">
+                                                <span class="aif-spb-dot"></span>
+                                                <?php echo AIF_Status::label('To do'); ?>
+                                            </button>
+                                            <button type="button" class="aif-status-pick-btn status-processing <?php echo ($post->status === 'Content updated') ? 'active' : ''; ?>" data-value="Content updated">
+                                                <span class="aif-spb-dot"></span>
+                                                <?php echo AIF_Status::label('Content updated'); ?>
+                                            </button>
+                                            <button type="button" class="aif-status-pick-btn status-future <?php echo ($post->status === 'Done') ? 'active' : ''; ?>" data-value="Done">
+                                                <span class="aif-spb-dot"></span>
+                                                <?php echo AIF_Status::label('Done'); ?>
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
