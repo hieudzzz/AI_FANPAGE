@@ -202,34 +202,170 @@
     transform: translateY(-1px);
 }
 
-/* ── Bulk Actions ── */
-.aif-bulk-select {
-    padding: 8px 30px 8px 12px !important;
-    border-radius: 10px !important;
-    border: 1px solid var(--aif-border-light) !important;
-    background: #fff !important;
-    font-size: 13px !important;
-    font-weight: 600 !important;
-    color: var(--aif-text-main) !important;
-    height: 40px !important;
-    appearance: none !important;
-    cursor: pointer;
-    min-width: 180px;
+/* ── Custom Dropdown (Bulk Actions) ── */
+.aif-custom-dropdown {
+    position: relative;
+    display: inline-block;
 }
 
-.aif-bulk-wrapper {
-    position: relative;
+.aif-dropdown-trigger {
     display: inline-flex;
     align-items: center;
+    gap: 10px;
+    padding: 0 16px;
+    height: 40px;
+    background: #fff;
+    border: 1.5px solid var(--aif-border-light);
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--aif-text-main);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 200px;
+    white-space: nowrap;
 }
 
-.aif-bulk-wrapper .dashicons-arrow-down-alt2 {
-    position: absolute;
-    right: 10px;
-    pointer-events: none;
+.aif-dropdown-trigger:hover {
+    border-color: #a5b4fc;
+    background: #fafafe;
+}
+
+.aif-dropdown-trigger.active {
+    border-color: var(--aif-primary);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.aif-dropdown-trigger.has-value {
+    border-color: var(--aif-primary);
+    background: #eef2ff;
+    color: var(--aif-primary);
+}
+
+.aif-dropdown-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 5px;
+    background: #f1f5f9;
+    flex-shrink: 0;
+}
+
+.aif-dropdown-icon .dashicons {
+    font-size: 13px;
+    width: 13px;
+    height: 13px;
+    color: #64748b;
+}
+
+.aif-dropdown-trigger.has-value .aif-dropdown-icon {
+    background: rgba(79, 70, 229, 0.15);
+}
+
+.aif-dropdown-trigger.has-value .aif-dropdown-icon .dashicons {
+    color: var(--aif-primary);
+}
+
+.aif-dropdown-label {
+    flex: 1;
+    text-align: left;
+}
+
+.aif-dropdown-arrow {
+    font-size: 14px !important;
+    width: 14px !important;
+    height: 14px !important;
     color: #94a3b8;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
 }
 
+.aif-dropdown-trigger.active .aif-dropdown-arrow {
+    transform: rotate(180deg);
+    color: var(--aif-primary);
+}
+
+/* Menu */
+.aif-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    min-width: 280px;
+    background: #fff;
+    border: 1.5px solid var(--aif-border-light);
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+    z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px) scale(0.97);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 6px;
+    overflow: hidden;
+}
+
+.aif-dropdown-menu.open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+}
+
+/* Options */
+.aif-dropdown-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.aif-dropdown-option:hover {
+    background: #f1f5f9;
+}
+
+.aif-dropdown-option.selected {
+    background: #eef2ff;
+}
+
+.aif-dropdown-opt-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+.aif-dropdown-opt-icon .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    color: #fff;
+}
+
+.aif-dropdown-opt-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.aif-dropdown-opt-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--aif-text-main);
+}
+
+.aif-dropdown-opt-desc {
+    font-size: 11px;
+    color: var(--aif-text-muted);
+}
+
+/* Apply button */
 .aif-btn-bulk-apply {
     height: 40px !important;
     padding: 0 20px !important;

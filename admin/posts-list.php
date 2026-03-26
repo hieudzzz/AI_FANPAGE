@@ -68,14 +68,44 @@ $counts = $db->get_counts();
 
     <div class="aif-filter-wrapper">
         <div class="bulkactions" style="display: flex; gap: 10px; align-items: center;">
-            <div class="aif-bulk-wrapper">
-                <select name="action" id="bulk-action-selector-top" class="aif-bulk-select">
-                    <option value="-1">Hành động hàng loạt</option>
-                    <option value="generate"><?php echo AIF_Status::label('To do'); ?> → Generate (AI soạn)</option>
-                    <option value="publish"><?php echo AIF_Status::label('Done'); ?> → Publish (Đăng bài)</option>
-                </select>
-                <span class="dashicons dashicons-arrow-down-alt2"></span>
+            <!-- Hidden select for JS compatibility -->
+            <select name="action" id="bulk-action-selector-top" style="display:none;">
+                <option value="-1">Hành động hàng loạt</option>
+                <option value="generate"><?php echo AIF_Status::label('To do'); ?> → Generate (AI soạn)</option>
+                <option value="publish"><?php echo AIF_Status::label('Done'); ?> → Publish (Đăng bài)</option>
+            </select>
+
+            <!-- Custom dropdown -->
+            <div class="aif-custom-dropdown" id="aif-bulk-dropdown">
+                <button type="button" class="aif-dropdown-trigger" id="aif-dropdown-trigger">
+                    <span class="aif-dropdown-icon">
+                        <span class="dashicons dashicons-admin-tools"></span>
+                    </span>
+                    <span class="aif-dropdown-label">Hành động hàng loạt</span>
+                    <span class="dashicons dashicons-arrow-down-alt2 aif-dropdown-arrow"></span>
+                </button>
+                <div class="aif-dropdown-menu" id="aif-dropdown-menu">
+                    <div class="aif-dropdown-option" data-value="generate">
+                        <span class="aif-dropdown-opt-icon" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);">
+                            <span class="dashicons dashicons-edit"></span>
+                        </span>
+                        <div class="aif-dropdown-opt-text">
+                            <span class="aif-dropdown-opt-title"><?php echo AIF_Status::label('To do'); ?> → Generate</span>
+                            <span class="aif-dropdown-opt-desc">AI tự động soạn nội dung</span>
+                        </div>
+                    </div>
+                    <div class="aif-dropdown-option" data-value="publish">
+                        <span class="aif-dropdown-opt-icon" style="background:linear-gradient(135deg,#10b981,#059669);">
+                            <span class="dashicons dashicons-megaphone"></span>
+                        </span>
+                        <div class="aif-dropdown-opt-text">
+                            <span class="aif-dropdown-opt-title"><?php echo AIF_Status::label('Done'); ?> → Publish</span>
+                            <span class="aif-dropdown-opt-desc">Đăng bài lên các kênh</span>
+                        </div>
+                    </div>
+                </div>
             </div>
+
             <button type="button" id="aif-doaction" class="aif-btn-bulk-apply">
                 <span class="dashicons dashicons-yes"></span>
                 Thực hiện

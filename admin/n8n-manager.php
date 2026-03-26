@@ -73,7 +73,7 @@ if (!defined('ABSPATH'))
 
     <!-- ===== TAB CONTENTS (partials) ===== -->
     <?php
-    $partials_dir = plugin_dir_path(__FILE__) . 'partials/';
+    $partials_dir = AIF_PATH . 'admin/partials/';
     include $partials_dir . 'tab-chats.php';
     include $partials_dir . 'tab-products.php';
     include $partials_dir . 'tab-leads.php';

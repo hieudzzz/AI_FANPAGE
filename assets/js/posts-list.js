@@ -5,6 +5,53 @@
 
 jQuery(function ($) {
 
+    // ── Custom Dropdown for Bulk Actions ─────────────────────────────────────
+    (function () {
+        var $dropdown = $('#aif-bulk-dropdown');
+        var $trigger  = $dropdown.find('.aif-dropdown-trigger');
+        var $menu     = $dropdown.find('.aif-dropdown-menu');
+        var $select   = $('#bulk-action-selector-top');
+        var $label    = $trigger.find('.aif-dropdown-label');
+
+        // Toggle menu
+        $trigger.on('click', function (e) {
+            e.stopPropagation();
+            var isOpen = $menu.hasClass('open');
+            $menu.toggleClass('open', !isOpen);
+            $trigger.toggleClass('active', !isOpen);
+        });
+
+        // Select option
+        $menu.on('click', '.aif-dropdown-option', function () {
+            var val   = $(this).data('value');
+            var title = $(this).find('.aif-dropdown-opt-title').text();
+
+            // Update hidden select
+            $select.val(val);
+
+            // Update trigger label & style
+            $label.text(title);
+            $trigger.addClass('has-value');
+
+            // Mark selected
+            $menu.find('.aif-dropdown-option').removeClass('selected');
+            $(this).addClass('selected');
+
+            // Close
+            $menu.removeClass('open');
+            $trigger.removeClass('active');
+        });
+
+        // Close on outside click
+        $(document).on('click', function () {
+            $menu.removeClass('open');
+            $trigger.removeClass('active');
+        });
+
+        // Prevent propagation inside menu
+        $menu.on('click', function (e) { e.stopPropagation(); });
+    })();
+
     // ── Helpers ──────────────────────────────────────────────────────────────
     function escTone(s) {
         return $('<div>').text(s || '').html();
