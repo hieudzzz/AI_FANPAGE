@@ -33,31 +33,31 @@ jQuery(document).ready(function ($) {
         function resolveUrl(val) {
             if (!val) return '';
             
-            // 1. Try wpUrlMap first (most reliable for WP attachments)
-            if (wpUrlMap[val]) return wpUrlMap[val];
+            // 1. Try wpDataMap first (cached {url, title})
+            if (wpDataMap[val]) return wpDataMap[val].url || wpDataMap[val];
 
             // 2. If WP attachment but not in map, try to find in DOM (modal grid)
             if (val.startsWith('wp-att-')) {
                 const $inp = $(`.aif-media-option input[value="${val}"]`);
                 if ($inp.length && $inp.data('url')) {
-                    wpUrlMap[val] = $inp.data('url');
-                    return wpUrlMap[val];
+                    const url = $inp.data('url');
+                    const title = $inp.closest('.aif-media-option').find('.wp-label-title').text() || '';
+                    wpDataMap[val] = { url, title };
+                    return url;
                 }
-                // If still not found, we can't do much for WP-att without a URL
                 return '';
             }
 
             // 3. Try cache AJAX (modalFilesCache)
-            if (modalFilesCache) {
-                const f = modalFilesCache.find(fx => fx.name === val);
+            if (mediaCache[modalCurFolder]) {
+                const f = mediaCache[modalCurFolder].files.find(fx => fx.name === val);
                 if (f && f.url) {
-                    // Cache it in wpUrlMap for future use even if folder changes
-                    wpUrlMap[val] = f.url;
+                    wpDataMap[val] = { url: f.url, title: f.name };
                     return f.url;
                 }
             }
 
-            // 4. Fallback: uploadUrl + filename (for plugin folder files)
+            // 4. Fallback: uploadUrl + filename
             return uploadUrl + val;
         }
 
@@ -151,10 +151,11 @@ jQuery(document).ready(function ($) {
         e.preventDefault();
         const filename = $(this).data('filename');
         const url      = $(this).data('url');
+        const title    = $(this).closest('.aif-media-option').find('.wp-label-title').text() || filename;
         
         if (filename) {
             $('#aif-image-website-input').val(filename);
-            if (url) wpUrlMap[filename] = url; // Cache the URL immediately
+            if (url) wpDataMap[filename] = { url, title }; // Cache the data immediately
             updateMediaPreview();
             if (window.AIF_Toast) AIF_Toast.show('Đã chọn làm ảnh đại diện Website', 'success');
         }
@@ -182,8 +183,10 @@ jQuery(document).ready(function ($) {
     let modalFilesCache  = null;   // Current files pointer
     let modalFolderCache = null;   // Current folders pointer
     let modalCurFolder   = '';     // folder đang active trong modal
+    let modalPage        = 1;      // Current pagination page
+    const modalPageLimit = 60;     // Images per page
     let modalSelected    = new Set(); // set các value đã chọn — persistent qua các folder
-    let wpUrlMap         = aif_post_detail.wp_att_urls || {}; // map wp-att-ID -> URL
+    let wpDataMap        = aif_post_detail.wp_att_data || {}; // map wp-att-ID -> {url, title}
 
     // Khởi tạo từ hidden input hiện tại
     function initModalSelected() {
@@ -213,6 +216,7 @@ jQuery(document).ready(function ($) {
     // Load media từ AJAX theo folder
     function loadModalMedia(folder) {
         modalCurFolder = folder;
+        modalPage      = 1; // Reset to page 1 for new folder
         const $grid = $('#aif-media-modal .aif-image-grid');
 
         // Check cache
@@ -265,49 +269,66 @@ jQuery(document).ready(function ($) {
         );
     }
 
-    function renderModalGrid() {
+    function renderModalGrid(append = false) {
         if (!modalFilesCache) return;
         const q     = ($('#aif-modal-search').val() || '').toLowerCase().trim();
         const files = q ? modalFilesCache.filter(f => f.name.toLowerCase().includes(q)) : modalFilesCache;
+        
+        const start = append ? (modalPage - 1) * modalPageLimit : 0;
+        const end   = modalPage * modalPageLimit;
+        const pagedFiles = files.slice(start, end);
 
         let html = '';
 
-        // ── Section: Ảnh WP đã chọn (chỉ hiện khi có) ──────────────────────
-        const webVal = $('#aif-image-website-input').val();
-        const wpSelected = Array.from(modalSelected).filter(v => v.startsWith('wp-att-'));
-        if (webVal && webVal.startsWith('wp-att-') && !modalSelected.has(webVal)) {
-            wpSelected.push(webVal);
-        }
-        if (wpSelected.length > 0 && !q) {
-            html += `<div style="grid-column:1/-1; font-size:11px; font-weight:800; text-transform:uppercase;
-                letter-spacing:0.7px; color:#7c3aed; margin-bottom:4px; padding:4px 2px;
-                border-bottom:2px solid #ede9fe; display:flex; align-items:center; gap:6px;">
-                <span class="dashicons dashicons-images-alt2" style="font-size:14px;width:14px;height:14px;"></span>
-                Ảnh WP đã chọn
-            </div>`;
-            wpSelected.forEach(function(id) {
-                const url = wpUrlMap[id] || '';
-                if (!url) return;
-                html += buildMediaCard(id, url, url, true);
-            });
-            html += `<div style="grid-column:1/-1; border-top:1px solid #f1f5f9; margin:6px 0 10px;"></div>`;
+        // ── Section Header (only on page 1 and no search) ─────────────────
+        if (!append && !q) {
+            const webVal = $('#aif-image-website-input').val();
+            const wpSelected = Array.from(modalSelected).filter(v => v.startsWith('wp-att-'));
+            if (webVal && webVal.startsWith('wp-att-') && !modalSelected.has(webVal)) {
+                wpSelected.push(webVal);
+            }
+            if (wpSelected.length > 0) {
+                html += `<div style="grid-column:1/-1; font-size:11px; font-weight:800; text-transform:uppercase;
+                    letter-spacing:0.7px; color:#7c3aed; margin-bottom:4px; padding:4px 2px;
+                    border-bottom:2px solid #ede9fe; display:flex; align-items:center; gap:6px;">
+                    <span class="dashicons dashicons-images-alt2" style="font-size:14px;width:14px;height:14px;"></span>
+                    Ảnh WP đã chọn
+                </div>`;
+                wpSelected.forEach(function(id) {
+                    const data = wpDataMap[id];
+                    if (!data || !data.url) return;
+                    html += buildMediaCard(id, data.url, data.url, true);
+                });
+                html += `<div style="grid-column:1/-1; border-top:1px solid #f1f5f9; margin:6px 0 10px;"></div>`;
+            }
         }
 
-        // ── Section: Plugin upload files ─────────────────────────────────────
-        if (files.length === 0 && wpSelected.length === 0) {
+        if (pagedFiles.length === 0 && !append) {
             html += '<div style="grid-column:1/-1;text-align:center;padding:60px;color:#94a3b8;">' +
                 '<span class="dashicons dashicons-format-gallery" style="font-size:40px;width:40px;height:40px;display:block;margin:0 auto 12px;opacity:0.3;"></span>' +
                 (q ? 'Không tìm thấy file nào.' : 'Chuyên mục này chưa có file.') + '</div>';
-        } else if (files.length === 0 && q) {
-            html += '<div style="grid-column:1/-1;text-align:center;padding:40px;color:#94a3b8;">Không tìm thấy file nào.</div>';
         } else {
-            files.forEach(function(f) {
-                const fileVal = f.name;
-                html += buildMediaCard(fileVal, f.url, f.url, false, f);
+            pagedFiles.forEach(function(f) {
+                html += buildMediaCard(f.name, f.url, f.url, false, f);
             });
         }
 
-        $('#aif-media-modal .aif-image-grid').html(html);
+        const $grid = $('#aif-media-modal .aif-image-grid');
+        if (append) {
+            $grid.append(html);
+        } else {
+            $grid.html(html);
+        }
+
+        // Add "Load More" button if there are more files
+        $('#aif-modal-load-more-container').remove();
+        if (end < files.length) {
+            const moreBtn = `<div id="aif-modal-load-more-container" style="grid-column:1/-1; text-align:center; padding:20px 0;">
+                <button type="button" id="aif-modal-load-more-btn" class="aif-btn aif-btn-outline" style="font-size:12px; padding:8px 24px;">Tải thêm...</button>
+            </div>`;
+            $grid.append(moreBtn);
+        }
+
         updateModalCount();
     }
 
@@ -317,9 +338,18 @@ jQuery(document).ready(function ($) {
         const isWeb    = (val === webVal);
         const border   = isWeb ? 'var(--aif-primary)' : (checked ? '#3b82f6' : 'transparent');
         const isVideo  = val.toLowerCase().endsWith('.mp4');
+        
+        // Resolve title for WP or plugin files
+        let displayTitle = val;
+        if (isWp && wpDataMap[val]) displayTitle = wpDataMap[val].title || val;
+        else if (f && f.name) displayTitle = f.name;
+
         const label    = isWp
-            ? `<div style="font-size:10px;border-radius:3px;background:#ede9fe;padding:1px 5px;color:#7c3aed;font-weight:700;">WP</div>`
-            : `<div style="font-size:10px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70px;">${f ? f.name : val}</div>`;
+            ? `<div style="display:flex; align-items:center; gap:4px; overflow:hidden;">
+                 <div style="font-size:9px; border-radius:3px; background:#ede9fe; padding:1px 4px; color:#7c3aed; font-weight:700; flex-shrink:0;">WP</div>
+                 <div class="wp-label-title" style="font-size:10px; color:#64748b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:65px;">${displayTitle}</div>
+               </div>`
+            : `<div style="font-size:10px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70px;">${displayTitle}</div>`;
 
         return `<label class="aif-media-option" style="cursor:pointer;position:relative;display:block;border-radius:12px;overflow:hidden;">
             <input type="checkbox" name="aif_images[]" value="${val}" ${checked ? 'checked' : ''}
@@ -356,7 +386,16 @@ jQuery(document).ready(function ($) {
     });
 
     // Search trong modal
-    $('#aif-modal-search').on('input', function() { renderModalGrid(); });
+    $('#aif-modal-search').on('input', function() {
+        modalPage = 1; // Reset to page 1 on search
+        renderModalGrid();
+    });
+
+    // Load more click
+    $(document).on('click', '#aif-modal-load-more-btn', function() {
+        modalPage++;
+        renderModalGrid(true); // append mode
+    });
 
     // Checkbox change → cập nhật modalSelected + border + count
     $(document).on('change', '#aif-media-modal .aif-image-grid input[type=checkbox]', function() {
@@ -446,13 +485,16 @@ jQuery(document).ready(function ($) {
                 const att = attachment.toJSON();
                 const url = att.url;
                 const id  = 'wp-att-' + att.id;
+                const title = att.filename || att.title || id;
 
-                // Thêm vào modalSelected + wpUrlMap
+                // Thêm vào modalSelected + wpDataMap
                 modalSelected.add(id);
-                wpUrlMap[id] = url;
+                wpDataMap[id] = { url, title };
 
                 // Nếu đã có trong grid rồi thì bỏ qua
                 if ($('.aif-media-option input[value="' + id + '"]').length) return;
+                
+                // ... (rest of the picker picker logic)
 
                 const isVideo  = att.mime && att.mime.indexOf('video') === 0;
                 const thumbUrl = (!isVideo && att.sizes && att.sizes.thumbnail)

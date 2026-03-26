@@ -1306,13 +1306,18 @@ class AI_Fanpage
                         $all_media[] = $saved_post->image_website;
                     }
                     
-                    // Filter unique and look up WP URLs
+                    // Filter unique and look up WP URLs + Titles
                     $all_media = array_unique($all_media);
                     foreach ($all_media as $v) {
                         if (strpos($v, 'wp-att-') === 0) {
                             $att_id = intval(substr($v, 7));
                             $url    = wp_get_attachment_url($att_id);
-                            if ($url) $wp_att_urls[$v] = $url;
+                            if ($url) {
+                                $wp_att_urls[$v] = [
+                                    'url'   => $url,
+                                    'title' => basename(get_attached_file($att_id) ?: get_the_title($att_id))
+                                ];
+                            }
                         }
                     }
                 }
@@ -1325,7 +1330,7 @@ class AI_Fanpage
                 'upload_url'     => AIF_URL . 'upload/',
                 'status_labels'  => AIF_Status::js_labels(),
                 'status_classes' => AIF_Status::js_badge_classes(),
-                'wp_att_urls'    => $wp_att_urls,
+                'wp_att_data'    => $wp_att_urls,
             ]);
         }
 
