@@ -976,6 +976,62 @@ jQuery(document).ready(function ($) {
         $label.text(isOpen ? 'Xem đầy đủ' : 'Thu gọn');
     });
 
+    // ── Character count for content ──────────────────────────
+    function updateCharCount() {
+        const len = $('#aif-caption').val().length;
+        $('#aif-char-count').text(len.toLocaleString() + ' ký tự');
+    }
+    $('#aif-caption').on('input', updateCharCount);
+    updateCharCount(); // Initial
+
+    // ── AI Revision ───────────────────────────────────────────
+    $('#btn-revise-content').on('click', function () {
+        const feedback       = $('#aif-feedback').val().trim();
+        const currentCaption = $('#aif-caption').val();
+
+        if (!feedback) {
+            if (window.AIF_Toast) AIF_Toast.show('Vui lòng nhập yêu cầu chỉnh sửa!', 'error');
+            $('#aif-feedback').focus();
+            return;
+        }
+
+        const $btn    = $(this);
+        const $spinner = $('#aif-revise-spinner');
+        $btn.prop('disabled', true).addClass('loading');
+        $spinner.show();
+
+        $.ajax({
+            url: ajaxUrl,
+            type: 'POST',
+            data: {
+                action: 'aif_revise_content',
+                nonce: nonce,
+                title: $('#aif-title').val(),
+                content: currentCaption,
+                feedback: feedback
+            },
+            success: function (response) {
+                if (response.success) {
+                    const data = response.data;
+                    if (data.generated_title) $('#aif-title').val(data.generated_title);
+                    if (data.caption) {
+                        $('#aif-caption').val(data.caption);
+                        updateCharCount();
+                    }
+                    $('#aif-feedback').val('');
+                    _syncStatusUI('Content updated');
+                    if (window.AIF_Toast) AIF_Toast.show('Đã tối ưu lời văn theo ý bạn!', 'success');
+                } else {
+                    if (window.AIF_Toast) AIF_Toast.show('Lỗi: ' + (response.data || 'Không thể sửa nội dung.'), 'error');
+                }
+            },
+            complete: function () {
+                $btn.prop('disabled', false).removeClass('loading');
+                $spinner.hide();
+            }
+        });
+    });
+
     // Hover effect cho variation card
     $(document).on('mouseenter', '.aif-variation-card', function () {
         $(this).css({ 'border-color': '#6366f1', 'box-shadow': '0 0 0 3px rgba(99,102,241,0.1)' });

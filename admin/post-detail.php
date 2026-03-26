@@ -720,35 +720,40 @@ endforeach; ?>
                                 <div id="aif-variations-list" style="display:flex;flex-direction:column;gap:10px;"></div>
                             </div>
 
-                            <div class="aif-form-group">
-                                <label>Tiêu đề bài viết</label>
-                                <input type="text" name="post_title" id="aif-title" class="aif-input"
-                                    value="<?php echo esc_attr($current_title); ?>"
-                                    style="font-size: 16px; font-weight: 700;">
+                            <div class="aif-field-wrapper">
+                                <label style="font-size: 13px; font-weight: 700; color: #64748b; margin-bottom: 8px; display: block;">Tiêu đề bài viết</label>
+                                <div class="aif-title-wrapper">
+                                    <span class="dashicons dashicons-edit"></span>
+                                    <input type="text" name="post_title" id="aif-title" class="aif-title-input"
+                                        value="<?php echo esc_attr($current_title); ?>" placeholder="Nhập tiêu đề hoặc để AI tự tạo...">
+                                </div>
                             </div>
 
-                            <div class="aif-form-group">
-                                <label>Nội dung chi tiết</label>
-                                <textarea name="post_content" id="aif-caption" class="aif-textarea" rows="18"
-                                    style="font-family: 'Inter', sans-serif; line-height: 1.6;"><?php echo esc_textarea($current_content); ?></textarea>
+                            <div class="aif-field-wrapper">
+                                <div class="aif-content-card">
+                                    <div class="aif-content-header">
+                                        <span><span class="dashicons dashicons-media-text" style="font-size: 14px; width: 14px; height: 14px;"></span> Nội dung bài viết</span>
+                                        <div id="aif-char-count" style="font-size: 11px; color: #94a3b8; font-weight: 600;">0 ký tự</div>
+                                    </div>
+                                    <textarea name="post_content" id="aif-caption" class="aif-content-textarea"
+                                        placeholder="Nhập nội dung bài viết tại đây..."><?php echo esc_textarea($current_content); ?></textarea>
+                                </div>
                             </div>
 
-                            <!-- Revision Box -->
-                            <div
-                                style="background: #f8fafc; border: 1px solid var(--aif-border-light); border-radius: 12px; padding: 15px; margin-top: 20px;">
-                                <label style="font-size: 12px; font-weight: 700; display: block; margin-bottom: 8px;">
-                                    <span class="dashicons dashicons-update"
-                                        style="font-size: 14px; margin-right: 5px;"></span> Tối ưu nội dung:
+                            <!-- Revision Container -->
+                            <div class="aif-revision-container">
+                                <label class="aif-revision-label">
+                                    <span class="dashicons dashicons-sparkles" style="font-size: 15px; width: 15px; height: 15px; color: #6366f1;"></span>
+                                    Tối ưu nội dung với AI
                                 </label>
-                                <div style="display: flex; gap: 10px;">
-                                    <input type="text" id="aif-feedback" name="aif_feedback" class="aif-input"
+                                <div class="aif-revision-input-group">
+                                    <input type="text" id="aif-feedback" name="aif_feedback" class="aif-revision-input"
                                         value="<?php echo esc_attr($post ? $post->feedback : ''); ?>"
-                                        placeholder="Góp ý sửa đổi (ví dụ: thêm emoji, viết ngắn lại...)">
-                                    <button type="button" id="btn-revise-content" class="aif-btn aif-btn-outline"
-                                        style="white-space: nowrap;">
-                                        ✏️ Sửa ngay
-                                        <span id="aif-revise-spinner" class="spinner"
-                                            style="float:none; margin:0 0 0 5px;"></span>
+                                        placeholder="Ví dụ: Thêm emoji, viết hài hước hơn, tóm tắt lại...">
+                                    <button type="button" id="btn-revise-content" class="aif-btn-revise">
+                                        <span class="dashicons dashicons-edit"></span>
+                                        Sửa ngay
+                                        <span id="aif-revise-spinner" class="spinner" style="float:none; margin:0; display:none;"></span>
                                     </button>
                                 </div>
                             </div>
