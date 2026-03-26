@@ -758,10 +758,12 @@ jQuery(document).ready(function ($) {
 
             // Grade badge
             $('#aif-check-grade-badge').text(d.grade).css({
+                'display': 'flex',
                 'background': d.grade_color + '22',
                 'color': d.grade_color,
                 'border': '2px solid ' + d.grade_color,
             });
+            $('#aif-check-score-area').show();
             $('#aif-check-label').text('Điểm: ' + d.score + '/100 — ' + d.grade_label)
                 .css('color', d.grade_color);
             $('#aif-check-score-fill').css({ 'width': d.score + '%', 'background': d.grade_color });

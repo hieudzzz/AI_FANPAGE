@@ -604,7 +604,7 @@ foreach ($tones as $key => $info):
 endforeach; ?>
                                         <!-- Button thêm mới -->
                                         <button type="button" class="aif-tone-btn aif-tone-add-btn" id="aif-tone-add-btn" title="Thêm phong cách viết mới">
-                                            <span class="dashicons dashicons-plus-alt2" style="font-size:13px;width:13px;height:13px;vertical-align:middle;margin-right:3px;"></span> Thêm mới
+                                            <span class="dashicons dashicons-plus-alt2" style="font-size:13px;width:13px;height:13px;"></span> Thêm mới
                                         </button>
                                     </div>
                                     <input type="hidden" name="aif_tone" id="aif-tone-input" value="<?php echo esc_attr($current_tone); ?>">
@@ -695,8 +695,8 @@ endforeach; ?>
                             <div id="aif-smart-check-bar" style="display:none; margin-bottom:14px; padding:10px 14px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px;">
                                 <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
                                     <div style="display:flex;align-items:center;gap:10px;">
-                                        <div id="aif-check-grade-badge" style="width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex-shrink:0;"></div>
-                                        <div>
+                                        <div id="aif-check-grade-badge" style="width:34px;height:34px;border-radius:8px;display:none;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex-shrink:0;"></div>
+                                        <div id="aif-check-score-area" style="display:none;">
                                             <div style="font-size:12px;font-weight:700;color:#374151;" id="aif-check-label">Chất lượng nội dung</div>
                                             <div id="aif-check-score-bar" style="width:160px;height:5px;background:#e2e8f0;border-radius:3px;margin-top:3px;overflow:hidden;">
                                                 <div id="aif-check-score-fill" style="height:100%;border-radius:3px;transition:width 0.5s;"></div>
