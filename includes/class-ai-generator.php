@@ -246,6 +246,50 @@ class AIF_AI_Generator
         return is_array($decoded) ? array_values($decoded) : [];
     }
 
+    /**
+     * AI-powered content check.
+     * Analyzes quality, engagement potential, and issues.
+     */
+    public function smart_check($title, $content, $platform, $industry)
+    {
+        $prompt  = "Bạn là Chuyên gia Đánh giá Content & Thuật toán Mạng xã hội chuyên nghiệp.\n";
+        $prompt .= "NHIỆM VỤ: Phân tích bài viết dưới đây và đưa ra điểm số chất lượng (0-100), phân loại Grade và các góp ý cải thiện.\n\n";
+        $prompt .= "--- THÔNG TIN BÀI VIẾT ---\n";
+        $prompt .= "- Ngành: $industry\n";
+        $prompt .= "- Nền tảng: $platform\n";
+        $prompt .= "- Tiêu đề: $title\n";
+        $prompt .= "- Nội dung: " . wp_trim_words($content, 300, '...') . "\n\n";
+        $prompt .= "--- YÊU CẦU ĐÁNH GIÁ ---\n";
+        $prompt .= "1. Điểm số (score): 0-100.\n";
+        $prompt .= "2. Phân loại (grade): A (Tốt), B (Khá), C (Trung bình), D (Yêu).\n";
+        $prompt .= "3. grade_label: Tương ứng với Grade (ví dụ: Tốt, Khá...).\n";
+        $prompt .= "4. grade_color: Màu sắc Hex (ví dụ: #059669 cho A, #0284c7 cho B, #d97706 cho C, #ef4444 cho D).\n";
+        $prompt .= "5. issues: Tối đa 4 vấn đề quan trọng nhất. Mỗi vấn đề có \"type\" (error|warning|info) và \"msg\" (nội dung góp ý cụ thể).\n\n";
+        $prompt .= "QUAN TRỌNG: Trả về duy nhất 1 JSON object. \n";
+        $prompt .= "Ví dụ:\n";
+        $prompt .= "{\n  \"score\": 88,\n  \"grade\": \"A\",\n  \"grade_label\": \"Tốt\",\n  \"grade_color\": \"#059669\",\n  \"issues\": [\n    {\"type\": \"warning\", \"msg\": \"Tiêu đề nên chứa từ khóa thu hút hơn.\"},\n    {\"type\": \"info\", \"msg\": \"Thêm 2-3 hashtag liên quan đến $industry để tăng reach.\"}\n  ]\n}";
+
+        $system = 'You are a professional content quality auditor. Return ONLY a valid JSON object. Language: Vietnamese.';
+
+        $ai_response = $this->call_ai($prompt, $system, true);
+
+        if (!$ai_response || (is_array($ai_response) && isset($ai_response['error']))) {
+            return null;
+        }
+
+        // Parse JSON
+        $raw = $ai_response;
+        if (is_string($raw)) {
+            $raw = preg_replace('/^```(?:json)?\s*/i', '', trim($raw));
+            $raw = preg_replace('/\s*```$/', '', $raw);
+            $decoded = json_decode($raw, true);
+        } else {
+            $decoded = $ai_response;
+        }
+
+        return $decoded;
+    }
+
     // =========================================================================
     // ROUTING — chọn provider theo cài đặt
     // =========================================================================

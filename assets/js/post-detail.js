@@ -661,6 +661,8 @@ jQuery(document).ready(function ($) {
             nonce: nonce,
             content: content,
             title: title,
+            post_id: postId,
+            industry: $('#aif-industry').val(),
         }, function (res) {
             $btn.prop('disabled', false).html('<span class="dashicons dashicons-search" style="font-size:13px;width:13px;height:13px;vertical-align:middle;margin-right:3px;"></span> Kiểm tra ngay');
             if (!res.success) return;

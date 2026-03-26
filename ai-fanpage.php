@@ -697,20 +697,35 @@ class AI_Fanpage
 
         $content = isset($_POST['content']) ? wp_unslash($_POST['content']) : '';
         $title   = isset($_POST['title'])   ? sanitize_text_field(wp_unslash($_POST['title'])) : '';
+        $post_id = isset($_POST['post_id']) ? intval($_POST['post_id']) : 0;
+        $industry = isset($_POST['industry']) ? sanitize_text_field(wp_unslash($_POST['industry'])) : '';
 
+        if (!$industry && $post_id) {
+            $db = new AIF_DB();
+            $post = $db->get($post_id);
+            if ($post) $industry = $post->industry;
+        }
+
+        $service = new AIF_AI_Generator();
+        $ai_data = $service->smart_check($title, $content, 'Facebook', $industry);
+
+        $len = mb_strlen(strip_tags($content));
+
+        if ($ai_data && is_array($ai_data) && isset($ai_data['score'])) {
+            $ai_data['length'] = $len;
+            wp_send_json_success($ai_data);
+        }
+
+        // Fallback to basic logic if AI fails
         $issues  = [];
         $score   = 100;
 
         // 1. Độ dài caption
-        $len = mb_strlen(strip_tags($content));
         if ($len < 50) {
             $issues[] = ['type' => 'error',   'msg' => "Nội dung quá ngắn ({$len} ký tự). Nên ít nhất 50 ký tự."];
             $score -= 30;
         } elseif ($len < 150) {
             $issues[] = ['type' => 'warning', 'msg' => "Nội dung hơi ngắn ({$len} ký tự). Nên từ 150+ ký tự để đạt reach tốt."];
-            $score -= 10;
-        } elseif ($len > 5000) {
-            $issues[] = ['type' => 'warning', 'msg' => "Nội dung quá dài ({$len} ký tự). Facebook cắt bài sau ~400 ký tự hiển thị."];
             $score -= 10;
         }
 
@@ -720,63 +735,15 @@ class AI_Fanpage
             $score -= 15;
         }
 
-        // 3. Spam words
-        $spam_words = ['click ngay', 'mua ngay', 'siêu rẻ', 'free ship', 'giảm giá sốc', 'cực hot', 'inbox ngay', 'dm ngay'];
-        $content_lower = mb_strtolower($content);
-        $found_spam = [];
-        foreach ($spam_words as $w) {
-            if (mb_strpos($content_lower, $w) !== false) $found_spam[] = $w;
-        }
-        if (count($found_spam) > 2) {
-            $issues[] = ['type' => 'warning', 'msg' => 'Có ' . count($found_spam) . ' cụm từ spam: "' . implode('", "', $found_spam) . '". Facebook có thể hạn chế reach.'];
-            $score -= 15;
-        }
-
-        // 4. Không có CTA
-        $cta_signals = ['comment', 'bình luận', 'chia sẻ', 'share', 'like', 'tag', 'liên hệ', 'nhắn tin', 'inbox', 'dm', 'đặt hàng', 'mua', 'xem thêm'];
-        $has_cta = false;
-        foreach ($cta_signals as $cta) {
-            if (mb_strpos($content_lower, $cta) !== false) {
-                $has_cta = true;
-                break;
-            }
-        }
-        if (!$has_cta) {
-            $issues[] = ['type' => 'info', 'msg' => 'Bài viết chưa có CTA (Call to Action). Thêm lời kêu gọi hành động để tăng tương tác.'];
-            $score -= 10;
-        }
-
-        // 5. Không có hashtag
-        if (mb_strpos($content, '#') === false) {
-            $issues[] = ['type' => 'info', 'msg' => 'Chưa có hashtag. Thêm 3–5 hashtag liên quan để tăng khả năng tìm kiếm.'];
-            $score -= 5;
-        }
-
-        // 6. Quá nhiều emoji liên tiếp
-        if (preg_match('/(\p{So}|\p{Sm}){5,}/u', $content)) {
-            $issues[] = ['type' => 'info', 'msg' => 'Có quá nhiều emoji liên tiếp. Dùng tiết chế để trông chuyên nghiệp hơn.'];
-            $score -= 5;
-        }
-
         $score = max(0, $score);
+        $grade = 'C';
+        $grade_label = 'Trung bình';
+        $grade_color = '#d97706';
 
-        // Xếp loại
         if ($score >= 85) {
-            $grade = 'A';
-            $grade_label = 'Tốt';
-            $grade_color = '#059669';
+            $grade = 'A'; $grade_label = 'Tốt'; $grade_color = '#059669';
         } elseif ($score >= 65) {
-            $grade = 'B';
-            $grade_label = 'Khá';
-            $grade_color = '#0284c7';
-        } elseif ($score >= 45) {
-            $grade = 'C';
-            $grade_label = 'Trung bình';
-            $grade_color = '#d97706';
-        } else {
-            $grade = 'D';
-            $grade_label = 'Yếu';
-            $grade_color = '#ef4444';
+            $grade = 'B'; $grade_label = 'Khá'; $grade_color = '#0284c7';
         }
 
         wp_send_json_success([
