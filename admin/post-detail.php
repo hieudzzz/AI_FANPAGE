@@ -13,13 +13,15 @@ if (!$is_new && $post_id) {
     if (!$post) {
         $is_new = true;
         $post_id = 0;
-    } else {
+    }
+    else {
         // Check if post is in queue
         $fb_manager_lock = new AIF_Facebook_Manager();
         if ($fb_manager_lock->is_post_queued($post_id)) {
             $is_locked = true;
             $lock_reason = 'queued';
-        } elseif ($post->status === 'Posted successfully') {
+        }
+        elseif ($post->status === 'Posted successfully') {
             $is_locked = true;
             $lock_reason = 'posted';
         }
@@ -43,7 +45,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && check_admin_referer('aif_save_post'
     if ($is_locked) {
         if ($lock_reason === 'queued') {
             $lock_error_message = 'Không thể lưu: Bài viết đang trong hàng chờ. Vui lòng gỡ khỏi hàng chờ trước.';
-        } else {
+        }
+        else {
             $lock_error_message = 'Không thể lưu: Bài viết đã được đăng thành công, không cho phép chỉnh sửa.';
         }
     }
@@ -57,7 +60,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && check_admin_referer('aif_save_post'
         $owner = sanitize_text_field(wp_unslash($_POST['aif_owner']));
         if (isset($_POST['aif_images_order']) && !empty($_POST['aif_images_order'])) {
             $images = wp_unslash($_POST['aif_images_order']);
-        } else {
+        }
+        else {
             $images = isset($_POST['aif_images']) ? json_encode(wp_unslash($_POST['aif_images'])) : '[]';
         }
         $image_website = isset($_POST['aif_image_website']) ? sanitize_text_field(wp_unslash($_POST['aif_image_website'])) : '';
@@ -122,9 +126,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && check_admin_referer('aif_save_post'
         // 1. VALIDATION for 'Done' Status
         if ($status_action === 'done' || $new_status === 'Done') {
             $errors = [];
-            if (empty($title)) $errors[] = 'Tiêu đề không được để trống khi hoàn tất.';
-            if (empty($content)) $errors[] = 'Nội dung không được để trống khi hoàn tất.';
-            if (empty($targets_data)) $errors[] = 'Vui lòng chọn ít nhất một nơi đăng bài (Fanpage hoặc Website).';
+            if (empty($title))
+                $errors[] = 'Tiêu đề không được để trống khi hoàn tất.';
+            if (empty($content))
+                $errors[] = 'Nội dung không được để trống khi hoàn tất.';
+            if (empty($targets_data))
+                $errors[] = 'Vui lòng chọn ít nhất một nơi đăng bài (Fanpage hoặc Website).';
 
             if (!empty($errors)) {
                 $_SESSION['aif_message'] = 'Lỗi: ' . implode(' ', $errors);
@@ -146,7 +153,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && check_admin_referer('aif_save_post'
                 $trigger_add_to_queue = true;
                 $trigger_queue_status = 'scheduled';
                 $_SESSION['aif_message'] = 'Đã chuyển sang Done & Lên lịch đăng: ' . $schedule;
-            } else {
+            }
+            else {
                 // Immediate
                 $trigger_add_to_queue = true;
                 $trigger_queue_status = 'pending';
@@ -188,7 +196,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && check_admin_referer('aif_save_post'
                 global $wpdb;
                 $post_id = $wpdb->insert_id;
             }
-        } else {
+        }
+        else {
             $result = $db->update($post_id, $data);
         }
 
@@ -212,19 +221,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && check_admin_referer('aif_save_post'
                     $has_web = false;
                     if (!empty($targets_data)) {
                         foreach ($targets_data as $target) {
-                            if (($target['platform'] ?? 'facebook') === 'website') $has_web = true;
-                            else $has_fb = true;
+                            if (($target['platform'] ?? 'facebook') === 'website')
+                                $has_web = true;
+                            else
+                                $has_fb = true;
                         }
                     }
 
                     if ($has_fb && $has_web) {
                         $_SESSION['aif_message'] = 'Đã đăng bài thành công lên Fanpage và Website!';
-                    } elseif ($has_web) {
+                    }
+                    elseif ($has_web) {
                         $_SESSION['aif_message'] = 'Đã đăng bài thành công lên Website!';
-                    } else {
+                    }
+                    else {
                         $_SESSION['aif_message'] = 'Đã đăng bài thành công lên Fanpage!';
                     }
-                } elseif ($updated_post && strpos($updated_post->status, 'failed') !== false) {
+                }
+                elseif ($updated_post && strpos($updated_post->status, 'failed') !== false) {
                     $_SESSION['aif_message'] = 'Lỗi khi đăng bài: ' . $updated_post->status;
                 }
             }
@@ -234,7 +248,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && check_admin_referer('aif_save_post'
             $redirect_url = admin_url('admin.php?page=ai-fanpage-post-detail&id=' . $post_id . $msg_param);
             echo "<script>window.location.href='$redirect_url';</script>";
             exit;
-        } else {
+        }
+        else {
             // Handle save error
             $_SESSION['aif_message'] = 'Lỗi: Không thể lưu bài viết vào Database.';
         }
@@ -267,12 +282,12 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($json_data) && isset($json
     <div class="aif-header-section">
         <h1>
             <span class="dashicons dashicons-edit-page" style="color: var(--aif-primary); font-size: 24px;"></span>
-            <?php echo $post_id ? 'Chi tiết bài viết' . (isset($post->stt) ? ' #' . $post->stt : '')    : 'Tạo bài viết mới'; ?>
+            <?php echo $post_id ? 'Chi tiết bài viết' . (isset($post->stt) ? ' #' . $post->stt : '') : 'Tạo bài viết mới'; ?>
         </h1>
         <div style="display: flex; align-items: center; gap: 15px;">
             <?php
-            $status_class = AIF_Status::badge_class($current_status);
-            ?>
+$status_class = AIF_Status::badge_class($current_status);
+?>
             <span class="aif-status-pill <?php echo $status_class; ?>">
                 <?php echo AIF_Status::label($current_status); ?>
             </span>
@@ -285,7 +300,8 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($json_data) && isset($json
                     <option value="Done" <?php selected($current_status, 'Done'); ?>>Done (Chuyển đăng)</option>
                     <?php if ($current_status === 'Posted successfully'): ?>
                         <option value="Posted successfully" selected>Posted successfully (Đã đăng)</option>
-                    <?php endif; ?>
+                    <?php
+endif; ?>
                 </select>
                 <span class="dashicons dashicons-arrow-down-alt2"
                     style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none; font-size: 14px; color: #94a3b8; <?php echo $is_locked ? 'display:none;' : ''; ?>"></span>
@@ -294,20 +310,20 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($json_data) && isset($json
     </div>
 
     <?php
-    // Thu thập tất cả thông báo cần hiển thị
-    $aif_toast_messages = [];
+// Thu thập tất cả thông báo cần hiển thị
+$aif_toast_messages = [];
 
-    if (isset($_GET['aif_msg']) && $_GET['aif_msg'] === 'saved') {
-        $aif_toast_messages[] = ['msg' => 'Đã lưu thay đổi bài viết thành công!', 'type' => 'success'];
-    }
-    if (isset($_SESSION['aif_message'])) {
-        $msg  = $_SESSION['aif_message'];
-        $type = (strpos($msg, 'Lỗi') !== false) ? 'error' : 'success';
-        $aif_toast_messages[] = ['msg' => $msg, 'type' => $type];
-        unset($_SESSION['aif_message']);
-    }
-    if (!empty($aif_toast_messages)):
-    ?>
+if (isset($_GET['aif_msg']) && $_GET['aif_msg'] === 'saved') {
+    $aif_toast_messages[] = ['msg' => 'Đã lưu thay đổi bài viết thành công!', 'type' => 'success'];
+}
+if (isset($_SESSION['aif_message'])) {
+    $msg = $_SESSION['aif_message'];
+    $type = (strpos($msg, 'Lỗi') !== false) ? 'error' : 'success';
+    $aif_toast_messages[] = ['msg' => $msg, 'type' => $type];
+    unset($_SESSION['aif_message']);
+}
+if (!empty($aif_toast_messages)):
+?>
         <script>
             (function waitForToast() {
                 if (window.AIF_Toast) {
@@ -315,13 +331,15 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($json_data) && isset($json
                         setTimeout(function() {
                             AIF_Toast.show(<?php echo json_encode($t['msg']); ?>, <?php echo json_encode($t['type']); ?>);
                         }, <?php echo $i * 600; ?>);
-                    <?php endforeach; ?>
+                    <?php
+    endforeach; ?>
                 } else {
                     setTimeout(waitForToast, 80);
                 }
             })();
         </script>
-    <?php endif; ?>
+    <?php
+endif; ?>
 
     <?php if ($is_locked && $lock_reason === 'queued'): ?>
         <div class="aif-status-banner banner-warning">
@@ -333,7 +351,8 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($json_data) && isset($json
                 <p class="banner-desc">Nội dung hiện đang bị khóa để chuẩn bị đăng. Nếu bạn muốn chỉnh sửa, vui lòng xóa bài viết khỏi hàng chờ bên dưới.</p>
             </div>
         </div>
-    <?php elseif ($is_locked && $lock_reason === 'posted'): ?>
+    <?php
+elseif ($is_locked && $lock_reason === 'posted'): ?>
         <div class="aif-status-banner banner-info">
             <div class="banner-icon">
                 <span class="dashicons dashicons-yes-alt"></span>
@@ -343,30 +362,34 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($json_data) && isset($json
                 <p class="banner-desc">Trạng thái này không cho phép chỉnh sửa nội dung để bảo toàn dữ liệu đồng bộ với Fanpage.</p>
                 <div class="banner-actions">
                     <?php
-                    $results = $db->get_results($post_id);
-                    foreach ($results as $res):
-                        $platform_icon = ($res->platform === 'facebook') ? 'dashicons-facebook' : 'dashicons-admin-site';
-                    ?>
+    $results = $db->get_results($post_id);
+    foreach ($results as $res):
+        $platform_icon = ($res->platform === 'facebook') ? 'dashicons-facebook' : 'dashicons-admin-site';
+?>
                         <a href="<?php echo esc_url($res->link); ?>" target="_blank" class="banner-link">
                             <span class="dashicons <?php echo $platform_icon; ?>"></span>
                             <?php
-                            if ($res->platform === 'facebook' && !empty($res->page_name)) {
-                                echo 'Xem trên ' . esc_html($res->page_name);
-                            } elseif ($res->platform === 'website' && !empty($res->target_id) && $res->target_id !== '0') {
-                                $pt_obj_banner = get_post_type_object($res->target_id);
-                                $pt_banner_name = $pt_obj_banner ? $pt_obj_banner->labels->singular_name : $res->target_id;
-                                echo 'Xem trên Website — ' . esc_html($pt_banner_name);
-                            } else {
-                                echo 'Xem trên ' . esc_html(ucfirst($res->platform));
-                            }
-                            ?>
+        if ($res->platform === 'facebook' && !empty($res->page_name)) {
+            echo 'Xem trên ' . esc_html($res->page_name);
+        }
+        elseif ($res->platform === 'website' && !empty($res->target_id) && $res->target_id !== '0') {
+            $pt_obj_banner = get_post_type_object($res->target_id);
+            $pt_banner_name = $pt_obj_banner ? $pt_obj_banner->labels->singular_name : $res->target_id;
+            echo 'Xem trên Website — ' . esc_html($pt_banner_name);
+        }
+        else {
+            echo 'Xem trên ' . esc_html(ucfirst($res->platform));
+        }
+?>
                             <span class="dashicons dashicons-external"></span>
                         </a>
-                    <?php endforeach; ?>
+                    <?php
+    endforeach; ?>
                 </div>
             </div>
         </div>
-    <?php endif; ?>
+    <?php
+endif; ?>
 
     <?php if (!empty($failed_queue_items)): ?>
         <div class="aif-status-banner banner-error">
@@ -378,22 +401,25 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($json_data) && isset($json
                 <p class="banner-desc">Bài viết này đã gặp lỗi khi đăng lên một số nền tảng. Kiểm tra lỗi bên dưới và thử đăng lại.</p>
                 <ul class="aif-failed-list">
                     <?php foreach ($failed_queue_items as $fitem):
-                        // Parse error reason
-                        $fstatus = $fitem->status;
-                        if (strpos($fstatus, 'failed: ') === 0) {
-                            $freason = trim(substr($fstatus, 8));
-                        } elseif ($fstatus === 'failed_no_token') {
-                            $freason = 'Token không hợp lệ hoặc đã hết hạn — vào Kết nối Fanpage để cập nhật';
-                        } elseif ($fstatus === 'failed_no_post') {
-                            $freason = 'Không tìm thấy bài viết trong database';
-                        } else {
-                            $freason = $fstatus;
-                        }
-                        $fplat = $fitem->platform ?? 'facebook';
-                        $fplat_class = ($fplat === 'website') ? 'plat-web' : 'plat-fb';
-                        $fplat_label = ($fplat === 'website') ? '🌐 Website' : '📘 Facebook';
-                        $ftarget = $fitem->page_name ?: ($fplat === 'website' ? 'Website' : 'Fanpage');
-                    ?>
+        // Parse error reason
+        $fstatus = $fitem->status;
+        if (strpos($fstatus, 'failed: ') === 0) {
+            $freason = trim(substr($fstatus, 8));
+        }
+        elseif ($fstatus === 'failed_no_token') {
+            $freason = 'Token không hợp lệ hoặc đã hết hạn — vào Kết nối Fanpage để cập nhật';
+        }
+        elseif ($fstatus === 'failed_no_post') {
+            $freason = 'Không tìm thấy bài viết trong database';
+        }
+        else {
+            $freason = $fstatus;
+        }
+        $fplat = $fitem->platform ?? 'facebook';
+        $fplat_class = ($fplat === 'website') ? 'plat-web' : 'plat-fb';
+        $fplat_label = ($fplat === 'website') ? '🌐 Website' : '📘 Facebook';
+        $ftarget = $fitem->page_name ?: ($fplat === 'website' ? 'Website' : 'Fanpage');
+?>
                         <li class="aif-failed-item">
                             <div class="aif-failed-item-left">
                                 <span class="aif-failed-platform <?php echo $fplat_class; ?>"><?php echo $fplat_label; ?></span>
@@ -410,11 +436,13 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($json_data) && isset($json
                                 Thử lại
                             </button>
                         </li>
-                    <?php endforeach; ?>
+                    <?php
+    endforeach; ?>
                 </ul>
             </div>
         </div>
-    <?php endif; ?>
+    <?php
+endif; ?>
 
     <form method="POST" id="aif-post-form">
         <?php wp_nonce_field('aif_save_post'); ?>
@@ -437,8 +465,8 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($json_data) && isset($json
                             <div class="aif-form-group">
                                 <label>Người phụ trách</label>
                                 <?php
-                                $display_owner = $post ? ($post->owner ?: (get_userdata($post->wp_author_id)->display_name ?? '')) : wp_get_current_user()->display_name;
-                                ?>
+$display_owner = $post ? ($post->owner ?: (get_userdata($post->wp_author_id)->display_name ?? '')) : wp_get_current_user()->display_name;
+?>
                                 <input type="text" name="aif_owner" class="aif-input"
                                     value="<?php echo esc_attr($display_owner); ?>">
                             </div>
@@ -446,30 +474,33 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($json_data) && isset($json
                             <div class="aif-form-group">
                                 <label>Post Type (WordPress)</label>
                                 <?php
-                                $all_post_types = get_post_types(['public' => true], 'objects');
-                                unset($all_post_types['page'], $all_post_types['attachment']);
-                                // Support multi post types (JSON array) or legacy single string
-                                $saved_post_types = [];
-                                if ($post && !empty($post->post_type)) {
-                                    $decoded = json_decode($post->post_type, true);
-                                    if (is_array($decoded)) {
-                                        $saved_post_types = $decoded;
-                                    } else {
-                                        $saved_post_types = [$post->post_type];
-                                    }
-                                } else {
-                                    $saved_post_types = ['post'];
-                                }
-                                ?>
+$all_post_types = get_post_types(['public' => true], 'objects');
+unset($all_post_types['page'], $all_post_types['attachment']);
+// Support multi post types (JSON array) or legacy single string
+$saved_post_types = [];
+if ($post && !empty($post->post_type)) {
+    $decoded = json_decode($post->post_type, true);
+    if (is_array($decoded)) {
+        $saved_post_types = $decoded;
+    }
+    else {
+        $saved_post_types = [$post->post_type];
+    }
+}
+else {
+    $saved_post_types = ['post'];
+}
+?>
                                 <div id="aif-post-type-list" style="max-height: 180px; overflow-y: auto; border: 1px solid var(--aif-border-light); border-radius: 8px; padding: 12px; background: var(--aif-bg-subtle);">
                                     <?php foreach ($all_post_types as $pt):
-                                        $checked = in_array($pt->name, $saved_post_types) ? 'checked' : '';
-                                    ?>
+    $checked = in_array($pt->name, $saved_post_types) ? 'checked' : '';
+?>
                                         <label style="display:flex; align-items:center; gap:8px; margin-bottom:8px; cursor:pointer; font-size:13px;">
                                             <input type="checkbox" name="aif_post_type[]" value="<?php echo esc_attr($pt->name); ?>" class="aif-post-type-checkbox" <?php echo $checked; ?>>
                                             <?php echo esc_html($pt->labels->singular_name); ?> <code style="font-size:11px; color:#94a3b8;">(<?php echo esc_html($pt->name); ?>)</code>
                                         </label>
-                                    <?php endforeach; ?>
+                                    <?php
+endforeach; ?>
                                 </div>
                             </div>
 
@@ -478,41 +509,41 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($json_data) && isset($json
                                 <div id="aif-category-list"
                                     style="max-height: 250px; overflow-y: auto; border: 1px solid var(--aif-border-light); border-radius: 8px; padding: 12px; background: var(--aif-bg-subtle);">
                                     <?php
-                                    $saved_cats = ($post && !empty($post->slug_category)) ? (json_decode($post->slug_category, true) ?: [intval($post->slug_category)]) : [];
-                                    $has_any_cat = false;
-                                    foreach ($saved_post_types as $spt) {
-                                        $spt_obj = get_post_type_object($spt);
-                                        $spt_label = $spt_obj ? $spt_obj->labels->singular_name : $spt;
-                                        $taxonomies = get_object_taxonomies($spt, 'objects');
-                                        $tax_name = '';
-                                        foreach ($taxonomies as $tax) {
-                                            if ($tax->hierarchical) {
-                                                $tax_name = $tax->name;
-                                                break;
-                                            }
-                                        }
-                                        if ($tax_name) {
-                                            $terms = get_terms(['taxonomy' => $tax_name, 'hide_empty' => false]);
-                                            if (!is_wp_error($terms) && !empty($terms)) {
-                                                $has_any_cat = true;
-                                                echo '<div class="aif-cat-group" style="margin-bottom:10px;">';
-                                                echo '<div style="font-size:11px; font-weight:700; color:#6366f1; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; padding-bottom:4px; border-bottom:1px dashed #e2e8f0;">';
-                                                echo esc_html($spt_label) . ' <code style="font-size:10px;color:#94a3b8;">(' . esc_html($spt) . ')</code>';
-                                                echo '</div>';
-                                                foreach ($terms as $term) {
-                                                    $checked = in_array($term->term_id, $saved_cats) ? 'checked' : '';
-                                                    echo '<label style="display:flex; align-items:center; gap:8px; margin-bottom:6px; cursor:pointer; font-size:13px; padding-left:4px;">';
-                                                    echo '<input type="checkbox" name="aif_wp_category[]" value="' . esc_attr($term->term_id) . '" ' . $checked . '> ' . esc_html($term->name);
-                                                    echo '</label>';
-                                                }
-                                                echo '</div>';
-                                            }
-                                        }
-                                    }
-                                    if (!$has_any_cat) {
-                                        echo '<em>Không có danh mục cho các Post Type đã chọn.</em>';
-                                    }
-                                    ?>
+$saved_cats = ($post && !empty($post->slug_category)) ? (json_decode($post->slug_category, true) ?: [intval($post->slug_category)]) : [];
+$has_any_cat = false;
+foreach ($saved_post_types as $spt) {
+    $spt_obj = get_post_type_object($spt);
+    $spt_label = $spt_obj ? $spt_obj->labels->singular_name : $spt;
+    $taxonomies = get_object_taxonomies($spt, 'objects');
+    $tax_name = '';
+    foreach ($taxonomies as $tax) {
+        if ($tax->hierarchical) {
+            $tax_name = $tax->name;
+            break;
+        }
+    }
+    if ($tax_name) {
+        $terms = get_terms(['taxonomy' => $tax_name, 'hide_empty' => false]);
+        if (!is_wp_error($terms) && !empty($terms)) {
+            $has_any_cat = true;
+            echo '<div class="aif-cat-group" style="margin-bottom:10px;">';
+            echo '<div style="font-size:11px; font-weight:700; color:#6366f1; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; padding-bottom:4px; border-bottom:1px dashed #e2e8f0;">';
+            echo esc_html($spt_label) . ' <code style="font-size:10px;color:#94a3b8;">(' . esc_html($spt) . ')</code>';
+            echo '</div>';
+            foreach ($terms as $term) {
+                $checked = in_array($term->term_id, $saved_cats) ? 'checked' : '';
+                echo '<label style="display:flex; align-items:center; gap:8px; margin-bottom:6px; cursor:pointer; font-size:13px; padding-left:4px;">';
+                echo '<input type="checkbox" name="aif_wp_category[]" value="' . esc_attr($term->term_id) . '" ' . $checked . '> ' . esc_html($term->name);
+                echo '</label>';
+            }
+            echo '</div>';
+        }
+    }
+}
+if (!$has_any_cat) {
+    echo '<em>Không có danh mục cho các Post Type đã chọn.</em>';
+}
+?>
                                 </div>
                             </div>
 
@@ -552,13 +583,13 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($json_data) && isset($json
                                     </label>
                                     <div class="aif-tone-grid" id="aif-tone-grid">
                                         <?php
-                                        $tones = AIF_AI_Generator::get_all_tones();
-                                        $current_tone = $post ? ($post->tone ?? '') : '';
-                                        foreach ($tones as $key => $info):
-                                            $is_custom = !empty($info['custom']);
-                                        ?>
+$tones = AIF_AI_Generator::get_all_tones();
+$current_tone = $post ? ($post->tone ?? '') : '';
+foreach ($tones as $key => $info):
+    $is_custom = !empty($info['custom']);
+?>
                                             <button type="button"
-                                                class="aif-tone-btn <?php echo ($current_tone === $key) ? 'active' : ''; ?> <?php echo $is_custom ? 'aif-tone-custom' : ''; ?>"
+                                                class="aif-tone-btn <?php echo($current_tone === $key) ? 'active' : ''; ?> <?php echo $is_custom ? 'aif-tone-custom' : ''; ?>"
                                                 data-tone="<?php echo esc_attr($key); ?>"
                                                 data-desc="<?php echo esc_attr($info['description'] ?? $info['desc'] ?? ''); ?>"
                                                 data-style="<?php echo esc_attr($info['style'] ?? ''); ?>"
@@ -566,9 +597,11 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($json_data) && isset($json
                                                 data-id="<?php echo esc_attr($info['id'] ?? ''); ?>"
                                                 data-label="<?php echo esc_attr($info['label']); ?>">
                                                 <?php echo esc_html($info['label']); ?>
-                                                <?php if ($is_custom): ?><span class="aif-tone-custom-del" data-key="<?php echo esc_attr($key); ?>" data-id="<?php echo esc_attr($info['id'] ?? ''); ?>" title="Xóa phong cách này">×</span><?php endif; ?>
+                                                <?php if ($is_custom): ?><span class="aif-tone-custom-del" data-key="<?php echo esc_attr($key); ?>" data-id="<?php echo esc_attr($info['id'] ?? ''); ?>" title="Xóa phong cách này">×</span><?php
+    endif; ?>
                                             </button>
-                                        <?php endforeach; ?>
+                                        <?php
+endforeach; ?>
                                         <!-- Button thêm mới -->
                                         <button type="button" class="aif-tone-btn aif-tone-add-btn" id="aif-tone-add-btn" title="Thêm phong cách viết mới">
                                             <span class="dashicons dashicons-plus-alt2" style="font-size:13px;width:13px;height:13px;vertical-align:middle;margin-right:3px;"></span> Thêm mới
@@ -719,6 +752,7 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($json_data) && isset($json
                                     </button>
                                 </div>
                             </div>
+                            
                         </div>
                     </div>
                 </div>
@@ -772,36 +806,37 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($json_data) && isset($json
                                 <div
                                     style="border: 1px solid var(--aif-border-light); border-radius: 12px; padding: 15px; background: var(--aif-bg-subtle);">
                                     <?php
-                                    $fb_manager = new AIF_Facebook_Manager();
-                                    $connected_pages = $fb_manager->get_pages();
-                                    $saved_targets = ($post && !empty($post->targets)) ? json_decode($post->targets, true) : [];
-                                    $checked_ids = [];
-                                    $has_website = false;
-                                    if (is_array($saved_targets))
-                                        foreach ($saved_targets as $t) {
-                                            if (isset($t['id']))
-                                                $checked_ids[] = $t['id'];
-                                            if (isset($t['platform']) && $t['platform'] === 'website')
-                                                $has_website = true;
-                                        }
+$fb_manager = new AIF_Facebook_Manager();
+$connected_pages = $fb_manager->get_pages();
+$saved_targets = ($post && !empty($post->targets)) ? json_decode($post->targets, true) : [];
+$checked_ids = [];
+$has_website = false;
+if (is_array($saved_targets))
+    foreach ($saved_targets as $t) {
+        if (isset($t['id']))
+            $checked_ids[] = $t['id'];
+        if (isset($t['platform']) && $t['platform'] === 'website')
+            $has_website = true;
+    }
 
-                                    echo '<label style="display:flex; align-items:center; gap:8px; margin-bottom:12px; font-weight:700; color:var(--aif-primary);">';
-                                    echo '<input type="checkbox" name="aif_target_website" value="1" ' . ($has_website ? 'checked' : '') . '> Website';
-                                    echo '</label>';
+echo '<label style="display:flex; align-items:center; gap:8px; margin-bottom:12px; font-weight:700; color:var(--aif-primary);">';
+echo '<input type="checkbox" name="aif_target_website" value="1" ' . ($has_website ? 'checked' : '') . '> Website';
+echo '</label>';
 
-                                    if ($connected_pages) {
-                                        foreach ($connected_pages as $page) {
-                                            $is_checked = in_array($page->id, $checked_ids) ? 'checked' : '';
-                                            echo '<label style="display:flex; align-items:center; gap:8px; margin-bottom:8px; font-size:13px;">';
-                                            echo '<input type="checkbox" name="aif_target_pages[]" value="' . esc_attr($page->id) . '" ' . $is_checked . '> ' . esc_html($page->page_name);
-                                            echo '</label>';
-                                        }
-                                    } else {
-                                        echo '<div style="font-size: 13px; color: #64748b; margin-top: 5px;">';
-                                        echo 'Chưa có Fanpage kết nối. <a href="' . admin_url('admin.php?page=ai-fanpage-settings') . '" style="color: var(--aif-primary); font-weight: 600; text-decoration: none;">Kết nối ngay &rarr;</a>';
-                                        echo '</div>';
-                                    }
-                                    ?>
+if ($connected_pages) {
+    foreach ($connected_pages as $page) {
+        $is_checked = in_array($page->id, $checked_ids) ? 'checked' : '';
+        echo '<label style="display:flex; align-items:center; gap:8px; margin-bottom:8px; font-size:13px;">';
+        echo '<input type="checkbox" name="aif_target_pages[]" value="' . esc_attr($page->id) . '" ' . $is_checked . '> ' . esc_html($page->page_name);
+        echo '</label>';
+    }
+}
+else {
+    echo '<div style="font-size: 13px; color: #64748b; margin-top: 5px;">';
+    echo 'Chưa có Fanpage kết nối. <a href="' . admin_url('admin.php?page=ai-fanpage-settings') . '" style="color: var(--aif-primary); font-weight: 600; text-decoration: none;">Kết nối ngay &rarr;</a>';
+    echo '</div>';
+}
+?>
                                 </div>
                             </div>
                         </div>
@@ -809,8 +844,8 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($json_data) && isset($json
 
                     <!-- Post Results -->
                     <?php
-                    $results = $db->get_results($post_id);
-                    if (!empty($results)): ?>
+$results = $db->get_results($post_id);
+if (!empty($results)): ?>
                         <div class="aif-card">
                             <div class="aif-card-header" style="display: flex; justify-content: space-between; align-items: center;">
                                 <h2><span class="dashicons dashicons-chart-bar"></span> Tương tác</h2>
@@ -823,16 +858,16 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($json_data) && isset($json
                                     <div class="aif-metric-row" data-result-id="<?php echo $res->id; ?>" style="padding: 15px; border-bottom: 1px solid var(--aif-border-light);">
                                         <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
                                             <?php
-                                            $p_class = ($res->platform === 'facebook') ? 'aif-fb-badge' : 'aif-web-badge';
-                                            $p_icon = ($res->platform === 'facebook') ? 'dashicons-facebook' : 'dashicons-admin-site';
-                                            // Show post type label for website results
-                                            $platform_display = ucfirst($res->platform);
-                                            if ($res->platform === 'website' && !empty($res->target_id) && $res->target_id !== '0') {
-                                                $pt_obj_display = get_post_type_object($res->target_id);
-                                                $pt_name = $pt_obj_display ? $pt_obj_display->labels->singular_name : $res->target_id;
-                                                $platform_display = 'Website — ' . $pt_name;
-                                            }
-                                            ?>
+        $p_class = ($res->platform === 'facebook') ? 'aif-fb-badge' : 'aif-web-badge';
+        $p_icon = ($res->platform === 'facebook') ? 'dashicons-facebook' : 'dashicons-admin-site';
+        // Show post type label for website results
+        $platform_display = ucfirst($res->platform);
+        if ($res->platform === 'website' && !empty($res->target_id) && $res->target_id !== '0') {
+            $pt_obj_display = get_post_type_object($res->target_id);
+            $pt_name = $pt_obj_display ? $pt_obj_display->labels->singular_name : $res->target_id;
+            $platform_display = 'Website — ' . $pt_name;
+        }
+?>
                                             <span class="aif-platform-badge <?php echo $p_class; ?>">
                                                 <span class="dashicons <?php echo $p_icon; ?>" style="font-size: 14px; width: 14px; height: 14px; margin-right: 4px;"></span>
                                                 <?php echo esc_html($platform_display); ?>
@@ -857,10 +892,12 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($json_data) && isset($json
                                             </div>
                                         </div>
                                     </div>
-                                <?php endforeach; ?>
+                                <?php
+    endforeach; ?>
                             </div>
                         </div>
-                    <?php endif; ?>
+                    <?php
+endif; ?>
                 </div>
             </div>
 
@@ -874,7 +911,8 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($json_data) && isset($json
                         style="color: var(--aif-danger); border-color: var(--aif-danger);">
                         <span class="dashicons dashicons-dismiss"></span> Hủy hàng chờ
                     </button>
-                <?php endif; ?>
+                <?php
+endif; ?>
             </div>
             <div style="display: flex; gap: 12px;">
                 <a href="admin.php?page=ai-fanpage-posts" class="aif-btn aif-btn-outline">Quay lại</a>
@@ -885,7 +923,8 @@ if (json_last_error() === JSON_ERROR_NONE && is_array($json_data) && isset($json
                     <button type="submit" name="aif_status_action" value="done" class="aif-btn aif-btn-primary">
                         Hoàn tất & Đăng
                     </button>
-                <?php endif; ?>
+                <?php
+endif; ?>
             </div>
         </div>
     </form>

@@ -155,8 +155,9 @@ jQuery(document).ready(function ($) {
         
         if (filename) {
             $('#aif-image-website-input').val(filename);
-            if (url) wpDataMap[filename] = { url, title }; // Cache the data immediately
+            if (url) wpDataMap[filename] = { url, title };
             updateMediaPreview();
+            renderModalGrid();
             if (window.AIF_Toast) AIF_Toast.show('Đã chọn làm ảnh đại diện Website', 'success');
         }
     });
@@ -571,9 +572,15 @@ jQuery(document).ready(function ($) {
     $(document).on('click', '.aif-tone-btn', function (e) {
         if ($(e.target).hasClass('aif-tone-custom-del')) return; // để handler xóa xử lý
         if ($(this).hasClass('aif-tone-add-btn')) return;        // để handler thêm xử lý
-        $('.aif-tone-btn').removeClass('active');
-        $(this).addClass('active');
-        $('#aif-tone-input').val($(this).data('tone'));
+
+        if ($(this).hasClass('active')) {
+            $(this).removeClass('active');
+            $('#aif-tone-input').val('');
+        } else {
+            $('.aif-tone-btn').removeClass('active');
+            $(this).addClass('active');
+            $('#aif-tone-input').val($(this).data('tone'));
+        }
     });
 
     // ── Tooltip hover phong cách viết ─────────────────────────
