@@ -491,11 +491,11 @@ else {
     $saved_post_types = ['post'];
 }
 ?>
-                                <div id="aif-post-type-list" style="max-height: 180px; overflow-y: auto; border: 1px solid var(--aif-border-light); border-radius: 8px; padding: 12px; background: var(--aif-bg-subtle);">
+                                <div id="aif-post-type-list" class="aif-check-list">
                                     <?php foreach ($all_post_types as $pt):
     $checked = in_array($pt->name, $saved_post_types) ? 'checked' : '';
 ?>
-                                        <label style="display:flex; align-items:center; gap:8px; margin-bottom:8px; cursor:pointer; font-size:13px;">
+                                        <label class="aif-check-item">
                                             <input type="checkbox" name="aif_post_type[]" value="<?php echo esc_attr($pt->name); ?>" class="aif-post-type-checkbox" <?php echo $checked; ?>>
                                             <?php echo esc_html($pt->labels->singular_name); ?> <code style="font-size:11px; color:#94a3b8;">(<?php echo esc_html($pt->name); ?>)</code>
                                         </label>
@@ -506,8 +506,7 @@ endforeach; ?>
 
                             <div class="aif-form-group">
                                 <label>Danh mục</label>
-                                <div id="aif-category-list"
-                                    style="max-height: 250px; overflow-y: auto; border: 1px solid var(--aif-border-light); border-radius: 8px; padding: 12px; background: var(--aif-bg-subtle);">
+                                <div id="aif-category-list" class="aif-check-list" style="max-height:250px;">
                                     <?php
 $saved_cats = ($post && !empty($post->slug_category)) ? (json_decode($post->slug_category, true) ?: [intval($post->slug_category)]) : [];
 $has_any_cat = false;
@@ -526,13 +525,13 @@ foreach ($saved_post_types as $spt) {
         $terms = get_terms(['taxonomy' => $tax_name, 'hide_empty' => false]);
         if (!is_wp_error($terms) && !empty($terms)) {
             $has_any_cat = true;
-            echo '<div class="aif-cat-group" style="margin-bottom:10px;">';
-            echo '<div style="font-size:11px; font-weight:700; color:#6366f1; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; padding-bottom:4px; border-bottom:1px dashed #e2e8f0;">';
-            echo esc_html($spt_label) . ' <code style="font-size:10px;color:#94a3b8;">(' . esc_html($spt) . ')</code>';
+            echo '<div class="aif-cat-group">';
+            echo '<div class="aif-cat-group-title">';
+            echo esc_html($spt_label) . ' <code style="font-size:10px;color:#94a3b8;font-weight:400;">(' . esc_html($spt) . ')</code>';
             echo '</div>';
             foreach ($terms as $term) {
                 $checked = in_array($term->term_id, $saved_cats) ? 'checked' : '';
-                echo '<label style="display:flex; align-items:center; gap:8px; margin-bottom:6px; cursor:pointer; font-size:13px; padding-left:4px;">';
+                echo '<label class="aif-check-item">';
                 echo '<input type="checkbox" name="aif_wp_category[]" value="' . esc_attr($term->term_id) . '" ' . $checked . '> ' . esc_html($term->name);
                 echo '</label>';
             }
@@ -549,6 +548,7 @@ if (!$has_any_cat) {
 
                             <div class="aif-form-group">
                                 <label>Nền tảng chính</label>
+                                <div class="aif-select-wrapper">
                                 <select name="aif_option" id="aif-platform" class="aif-select">
                                     <option value="Facebook" <?php selected($current_option, 'Facebook'); ?>>Facebook
                                     </option>
@@ -557,6 +557,7 @@ if (!$has_any_cat) {
                                     <option value="Website" <?php selected($current_option, 'Website'); ?>>Website
                                     </option>
                                 </select>
+                                </div>
                             </div>
                         </div>
                     </div>
