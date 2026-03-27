@@ -548,15 +548,32 @@ if (!$has_any_cat) {
 
                             <div class="aif-form-group">
                                 <label>Nền tảng chính</label>
-                                <div class="aif-select-wrapper">
-                                <select name="aif_option" id="aif-platform" class="aif-select">
-                                    <option value="Facebook" <?php selected($current_option, 'Facebook'); ?>>Facebook
-                                    </option>
-                                    <option value="LinkedIn" <?php selected($current_option, 'LinkedIn'); ?>>LinkedIn
-                                    </option>
-                                    <option value="Website" <?php selected($current_option, 'Website'); ?>>Website
-                                    </option>
+                                <!-- Select ẩn để JS/form vẫn đọc được -->
+                                <select name="aif_option" id="aif-platform" style="display:none;">
+                                    <option value="Facebook" <?php selected($current_option, 'Facebook'); ?>>Facebook</option>
+                                    <option value="LinkedIn" <?php selected($current_option, 'LinkedIn'); ?>>LinkedIn</option>
+                                    <option value="Website" <?php selected($current_option, 'Website'); ?>>Website</option>
                                 </select>
+                                <!-- Custom platform picker -->
+                                <div class="aif-platform-picker">
+                                    <?php
+$platforms = [
+    'Facebook' => ['icon' => 'dashicons-facebook', 'color' => '#1877f2', 'bg' => '#eff6ff'],
+    'LinkedIn' => ['icon' => 'dashicons-linkedin', 'color' => '#0077b5', 'bg' => '#f0f9ff'],
+    'Website'  => ['icon' => 'dashicons-admin-site-alt3', 'color' => '#059669', 'bg' => '#f0fdf4'],
+];
+foreach ($platforms as $val => $p):
+    $active = ($current_option === $val) ? 'active' : '';
+?>
+                                    <button type="button"
+                                        class="aif-platform-btn <?php echo $active; ?>"
+                                        data-value="<?php echo $val; ?>"
+                                        data-color="<?php echo $p['color']; ?>"
+                                        data-bg="<?php echo $p['bg']; ?>">
+                                        <span class="dashicons <?php echo $p['icon']; ?>"></span>
+                                        <?php echo $val; ?>
+                                    </button>
+                                <?php endforeach; ?>
                                 </div>
                             </div>
                         </div>

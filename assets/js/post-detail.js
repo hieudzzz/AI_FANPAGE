@@ -1339,5 +1339,26 @@ jQuery(document).ready(function ($) {
     $('#btn-suggest-time').on('click', function () {
         aifFetchTimeSuggestions(false);
     });
+
+    // ── Platform Picker ───────────────────────────────────────
+    $(document).on('click', '.aif-platform-btn', function () {
+        const $btn   = $(this);
+        const val    = $btn.data('value');
+        const color  = $btn.data('color');
+        const bg     = $btn.data('bg');
+
+        $('.aif-platform-btn').removeClass('active').css({ background: '', color: '', borderColor: '' });
+        $btn.addClass('active').css({ background: bg, color: color, borderColor: color });
+        $('#aif-platform').val(val).trigger('change');
+    });
+
+    // init màu cho nút đang active lúc load
+    $('.aif-platform-btn.active').each(function () {
+        $(this).css({
+            background  : $(this).data('bg'),
+            color       : $(this).data('color'),
+            borderColor : $(this).data('color'),
+        });
+    });
 });
 

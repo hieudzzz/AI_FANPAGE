@@ -771,30 +771,93 @@
     position: relative;
 }
 
+.aif-select-wrapper::before {
+    content: '';
+    position: absolute;
+    right: 38px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1px;
+    height: 16px;
+    background: var(--aif-border-light);
+    pointer-events: none;
+    z-index: 1;
+}
+
 .aif-select-wrapper::after {
     content: '';
     position: absolute;
-    right: 12px;
+    right: 14px;
     top: 50%;
-    transform: translateY(-50%);
-    width: 0;
-    height: 0;
-    border-left: 5px solid transparent;
-    border-right: 5px solid transparent;
-    border-top: 5px solid var(--aif-text-muted);
+    width: 7px;
+    height: 7px;
+    border-right: 2px solid var(--aif-text-muted);
+    border-bottom: 2px solid var(--aif-text-muted);
+    transform: translateY(-70%) rotate(45deg);
     pointer-events: none;
+    transition: border-color 0.2s, transform 0.2s;
 }
 
 .aif-select-wrapper .aif-select {
     appearance: none;
     -webkit-appearance: none;
-    padding-right: 34px;
+    padding-right: 42px;
     cursor: pointer;
 }
 
-.aif-select-wrapper .aif-select:focus + ::after,
 .aif-select-wrapper:focus-within::after {
-    border-top-color: var(--aif-primary);
+    border-color: var(--aif-primary);
+    transform: translateY(-30%) rotate(225deg);
+}
+
+.aif-select-wrapper:focus-within::before {
+    background: var(--aif-primary);
+    opacity: 0.4;
+}
+
+/* Platform Picker */
+.aif-platform-picker {
+    display: flex;
+    gap: 8px;
+}
+
+.aif-platform-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 8px;
+    border: 1.5px solid var(--aif-border-light);
+    border-radius: 10px;
+    background: var(--aif-bg-subtle);
+    color: var(--aif-text-muted);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.18s;
+    font-family: inherit;
+    line-height: 1;
+}
+
+.aif-platform-btn .dashicons {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+}
+
+.aif-platform-btn:hover {
+    border-color: #94a3b8;
+    background: #fff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.07);
+    transform: translateY(-1px);
+}
+
+.aif-platform-btn.active {
+    font-weight: 700;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
 }
 
 /* Checkbox / scrollable list */
