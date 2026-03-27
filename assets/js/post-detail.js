@@ -999,7 +999,11 @@ jQuery(document).ready(function ($) {
 
         const $btn    = $(this);
         const $spinner = $('#aif-revise-spinner');
+        const $icon    = $('#aif-revise-icon');
+        const $label   = $('#aif-revise-label');
         $btn.prop('disabled', true).addClass('loading');
+        $icon.hide();
+        $label.text('Đang xử lý...');
         $spinner.show();
 
         $.ajax({
@@ -1029,6 +1033,8 @@ jQuery(document).ready(function ($) {
             },
             complete: function () {
                 $btn.prop('disabled', false).removeClass('loading');
+                $icon.show();
+                $label.text('Sửa ngay');
                 $spinner.hide();
             }
         });
@@ -1047,50 +1053,8 @@ jQuery(document).ready(function ($) {
     });
 
     // =========================================================
-    // 6. Content Revision
+    // 6. Content Revision — handler đã được hợp nhất ở trên
     // =========================================================
-    $('#btn-revise-content').on('click', function () {
-        const feedback       = $('#aif-feedback').val().trim();
-        const currentCaption = $('#aif-caption').val();
-
-        if (!feedback) {
-            if (window.AIF_Toast) AIF_Toast.show('Vui lòng nhập góp ý sửa đổi!', 'error');
-            return;
-        }
-
-        const $btn    = $(this);
-        const $loader = $('#aif-ai-loader');
-        $btn.prop('disabled', true);
-        $loader.addClass('is-active');
-
-        $.ajax({
-            url: ajaxUrl,
-            type: 'POST',
-            data: {
-                action: 'aif_revise_content',
-                nonce: nonce,
-                title: $('#aif-title').val(),
-                content: currentCaption,
-                feedback: feedback
-            },
-            success: function (response) {
-                if (response.success) {
-                    const data = response.data;
-                    if (data.generated_title) $('#aif-title').val(data.generated_title);
-                    if (data.caption) $('#aif-caption').val(data.caption);
-                    $('#aif-feedback').val('');
-                    _syncStatusUI('Content updated');
-                    if (window.AIF_Toast) AIF_Toast.show('Đã tối ưu lời văn theo ý bạn!', 'success');
-                } else {
-                    alert('Lỗi: ' + (response.data || 'Không thể sửa nội dung.'));
-                }
-            },
-            complete: function () {
-                $btn.prop('disabled', false);
-                $loader.removeClass('is-active');
-            }
-        });
-    });
 
     function _syncStatusUI(statusKey) {
         $('#aif_manual_status').val(statusKey);

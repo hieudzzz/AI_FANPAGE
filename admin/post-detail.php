@@ -751,9 +751,11 @@ endforeach; ?>
                                         value="<?php echo esc_attr($post ? $post->feedback : ''); ?>"
                                         placeholder="Ví dụ: Thêm emoji, viết hài hước hơn, tóm tắt lại...">
                                     <button type="button" id="btn-revise-content" class="aif-btn-revise">
-                                        <span class="dashicons dashicons-edit"></span>
-                                        Sửa ngay
-                                        <span id="aif-revise-spinner" class="spinner" style="float:none; margin:0; display:none;"></span>
+                                        <span id="aif-revise-icon" class="dashicons dashicons-edit"></span>
+                                        <span id="aif-revise-label">Sửa ngay</span>
+                                        <span id="aif-revise-spinner" class="aif-dot-spinner" style="display:none;">
+                                            <span></span><span></span><span></span>
+                                        </span>
                                     </button>
                                 </div>
                             </div>
