@@ -53,11 +53,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && check_admin_referer('aif_save_post'
     if (!$lock_error_message) {
         // V2 Fields
         $description = isset($_POST['aif_description']) ? wp_kses_post(wp_unslash($_POST['aif_description'])) : '';
-        $industry = sanitize_text_field(wp_unslash($_POST['aif_industry']));
-        $option_platform = sanitize_text_field(wp_unslash($_POST['aif_option']));
-        $title = sanitize_text_field(wp_unslash($_POST['post_title']));
-        $content = wp_kses_post(wp_unslash($_POST['post_content']));
-        $owner = sanitize_text_field(wp_unslash($_POST['aif_owner']));
+        $industry = isset($_POST['aif_industry']) ? sanitize_text_field(wp_unslash($_POST['aif_industry'])) : '';
+        $option_platform = isset($_POST['aif_option']) ? sanitize_text_field(wp_unslash($_POST['aif_option'])) : '';
+        $title = isset($_POST['post_title']) ? sanitize_text_field(wp_unslash($_POST['post_title'])) : '';
+        $content = isset($_POST['post_content']) ? wp_kses_post(wp_unslash($_POST['post_content'])) : '';
+        $owner = isset($_POST['aif_owner']) ? sanitize_text_field(wp_unslash($_POST['aif_owner'])) : '';
         if (isset($_POST['aif_images_order']) && !empty($_POST['aif_images_order'])) {
             $images = wp_unslash($_POST['aif_images_order']);
         }

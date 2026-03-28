@@ -1342,14 +1342,23 @@ jQuery(document).ready(function ($) {
 
     // ── Platform Picker ───────────────────────────────────────
     $(document).on('click', '.aif-platform-btn', function () {
-        const $btn   = $(this);
-        const val    = $btn.data('value');
-        const color  = $btn.data('color');
-        const bg     = $btn.data('bg');
+        const $btn    = $(this);
+        const isActive = $btn.hasClass('active');
+        const val     = $btn.data('value');
+        const color   = $btn.data('color');
+        const bg      = $btn.data('bg');
 
+        // Reset tất cả
         $('.aif-platform-btn').removeClass('active').css({ background: '', color: '', borderColor: '' });
-        $btn.addClass('active').css({ background: bg, color: color, borderColor: color });
-        $('#aif-platform').val(val).trigger('change');
+
+        if (isActive) {
+            // Nhấn lại nút đang chọn → bỏ chọn
+            $('#aif-platform').val('').trigger('change');
+        } else {
+            // Chọn nút mới
+            $btn.addClass('active').css({ background: bg, color: color, borderColor: color });
+            $('#aif-platform').val(val).trigger('change');
+        }
     });
 
     // init màu cho nút đang active lúc load
