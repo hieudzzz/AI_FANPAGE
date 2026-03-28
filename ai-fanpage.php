@@ -474,7 +474,18 @@ class AI_Fanpage
             $target   = $base . $filename;
             $i++;
         }
-        if (!move_uploaded_file($file['tmp_name'], $target)) wp_send_json_error('Không thể lưu file.');
+        if (!file_exists($base)) {
+            wp_mkdir_p($base);
+        }
+        if (!is_writable($base)) {
+            wp_send_json_error('Thư mục upload không có quyền ghi. Vui lòng kiểm tra quyền truy cập của thư mục: ' . $base);
+        }
+
+        if (!move_uploaded_file($file['tmp_name'], $target)) {
+            $err_msg = 'Không thể lưu file (move_uploaded_file failed).';
+            if (!file_exists($file['tmp_name'])) $err_msg .= ' File tạm không tồn tại.';
+            wp_send_json_error($err_msg);
+        }
         $tm = $this->media_tbl_meta();
         $wpdb->insert($tm, ['filename' => $filename]);
         $file_id = $wpdb->insert_id;

@@ -429,7 +429,10 @@ jQuery(document).ready(function ($) {
 
         // Upload từng file vào folder đang active trong modal
         let done = 0;
-        Array.from(files).forEach(function(file) {
+        let successCount = 0;
+        const filesArray = Array.from(files);
+
+        filesArray.forEach(function(file) {
             const formData = new FormData();
             formData.append('action', 'aif_media_upload');
             formData.append('nonce',  nonce);
@@ -441,25 +444,39 @@ jQuery(document).ready(function ($) {
                 processData: false, contentType: false,
                 success: function(res) {
                     done++;
-                    if (res.success && modalFilesCache) {
-                        modalFilesCache.unshift(res.data);
-                        // Ensure cache is updated as well
-                        if (mediaCache[modalCurFolder]) {
-                            mediaCache[modalCurFolder].files = modalFilesCache;
+                    if (res.success) {
+                        successCount++;
+                        if (modalFilesCache) {
+                            modalFilesCache.unshift(res.data);
+                            if (mediaCache[modalCurFolder]) {
+                                mediaCache[modalCurFolder].files = modalFilesCache;
+                            }
                         }
+                    } else {
+                        if (window.AIF_Toast) AIF_Toast.show('Lỗi upload ' + file.name + ': ' + (res.data || 'Unknown error'), 'error');
                     }
-                    if (done === files.length) {
-                        spinner.removeClass('is-active');
-                        renderModalGrid();
-                        if (window.AIF_Toast) AIF_Toast.show(done + ' file đã tải lên!', 'success');
+                    
+                    if (done === filesArray.length) {
+                        finishInlineUpload();
                     }
                 },
                 error: function() {
                     done++;
-                    if (done === files.length) { spinner.removeClass('is-active'); renderModalGrid(); }
+                    if (window.AIF_Toast) AIF_Toast.show('Lỗi kết nối khi upload ' + file.name, 'error');
+                    if (done === filesArray.length) {
+                        finishInlineUpload();
+                    }
                 }
             });
         });
+
+        function finishInlineUpload() {
+            spinner.removeClass('is-active');
+            renderModalGrid();
+            if (successCount > 0) {
+                if (window.AIF_Toast) AIF_Toast.show(successCount + ' file đã tải lên!', 'success');
+            }
+        }
 
         this.value = '';
     });

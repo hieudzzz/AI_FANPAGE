@@ -211,6 +211,7 @@
     function uploadFiles(fileList) {
         var files = Array.from(fileList);
         var done  = 0;
+        var successCount = 0;
         var $bar  = $('#ml-progress').addClass('visible');
         var $fill = $('#ml-progress-bar').css('width', '0%');
 
@@ -228,26 +229,37 @@
                     done++;
                     $fill.css('width', (done / files.length * 100) + '%');
                     if (res.success) {
+                        successCount++;
                         allFiles.unshift(res.data);
                         allFolders.forEach(function (f) {
                             if (f.name === '' || f.name === res.data.folder) f.count++;
                         });
                     } else {
-                        toast('Lỗi upload ' + file.name + ': ' + res.data, 'error');
+                        toast('Lỗi upload ' + file.name + ': ' + (res.data || 'Unknown error'), 'error');
                     }
                     if (done === files.length) {
-                        setTimeout(function () { $bar.removeClass('visible'); $fill.css('width', '0%'); }, 600);
-                        renderSidebar();
-                        renderGrid();
-                        toast(done + ' file đã được tải lên!');
+                        finishUploads();
                     }
                 },
                 error: function () {
                     done++;
-                    if (done === files.length) { $bar.removeClass('visible'); renderGrid(); }
+                    toast('Lỗi kết nối khi upload ' + file.name, 'error');
+                    if (done === files.length) {
+                        finishUploads();
+                    }
                 }
             });
         }
+
+        function finishUploads() {
+            setTimeout(function () { $bar.removeClass('visible'); $fill.css('width', '0%'); }, 600);
+            renderSidebar();
+            renderGrid();
+            if (successCount > 0) {
+                toast(successCount + ' file đã được tải lên!');
+            }
+        }
+
         files.forEach(uploadOne);
     }
 
