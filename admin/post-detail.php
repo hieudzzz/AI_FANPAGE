@@ -836,13 +836,16 @@ $connected_pages = $fb_manager->get_pages();
 $saved_targets = ($post && !empty($post->targets)) ? json_decode($post->targets, true) : [];
 $checked_ids = [];
 $has_website = false;
-if (is_array($saved_targets))
+if (is_array($saved_targets)) {
     foreach ($saved_targets as $t) {
-        if (isset($t['id']))
-            $checked_ids[] = $t['id'];
-        if (isset($t['platform']) && $t['platform'] === 'website')
+        if (isset($t['id'])) {
+            $checked_ids[] = (string) $t['id'];
+        }
+        if (isset($t['platform']) && $t['platform'] === 'website') {
             $has_website = true;
+        }
     }
+}
 
 echo '<label style="display:flex; align-items:center; gap:8px; margin-bottom:12px; font-weight:700; color:var(--aif-primary);">';
 echo '<input type="checkbox" name="aif_target_website" value="1" ' . ($has_website ? 'checked' : '') . '> Website';
@@ -850,7 +853,7 @@ echo '</label>';
 
 if ($connected_pages) {
     foreach ($connected_pages as $page) {
-        $is_checked = in_array($page->id, $checked_ids) ? 'checked' : '';
+        $is_checked = in_array((string) $page->id, $checked_ids) ? 'checked' : '';
         echo '<label style="display:flex; align-items:center; gap:8px; margin-bottom:8px; font-size:13px;">';
         echo '<input type="checkbox" name="aif_target_pages[]" value="' . esc_attr($page->id) . '" ' . $is_checked . '> ' . esc_html($page->page_name);
         echo '</label>';
@@ -887,7 +890,9 @@ if (!empty($results)): ?>
         $p_icon = ($res->platform === 'facebook') ? 'dashicons-facebook' : 'dashicons-admin-site';
         // Show post type label for website results
         $platform_display = ucfirst($res->platform);
-        if ($res->platform === 'website' && !empty($res->target_id) && $res->target_id !== '0') {
+        if ($res->platform === 'facebook' && !empty($res->page_name)) {
+            $platform_display = 'Facebook — ' . $res->page_name;
+        } elseif ($res->platform === 'website' && !empty($res->target_id) && $res->target_id !== '0') {
             $pt_obj_display = get_post_type_object($res->target_id);
             $pt_name = $pt_obj_display ? $pt_obj_display->labels->singular_name : $res->target_id;
             $platform_display = 'Website — ' . $pt_name;

@@ -371,7 +371,13 @@ $counts = $db->get_counts();
                                                 $link = "https://www.facebook.com/{$parts[0]}/posts/{$parts[1]}";
                                             }
                                         ?>
-                                            <a href="<?php echo esc_url($link); ?>" target="_blank" class="platform-icon">
+                                            <a href="<?php echo esc_url($link); ?>" target="_blank" class="platform-icon" title="<?php 
+                                                if ($res->platform === 'facebook') {
+                                                    echo esc_attr(!empty($res->page_name) ? 'Facebook: ' . $res->page_name : 'Facebook');
+                                                } else {
+                                                    echo 'Website';
+                                                }
+                                            ?>">
                                                 <span class="dashicons <?php echo $icon; ?>"
                                                     style="font-size: 18px; width: 18px; height: 18px;"></span>
                                             </a>
