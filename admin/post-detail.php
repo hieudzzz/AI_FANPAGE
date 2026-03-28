@@ -903,9 +903,10 @@ if (!empty($results)): ?>
                                                 <?php echo esc_html($platform_display); ?>
                                             </span>
                                             <a href="<?php echo esc_url($res->link); ?>" target="_blank"
-                                                style="font-size: 11px; text-decoration: none;"><span
-                                                    class="dashicons dashicons-external" style="font-size: 14px;"></span>
-                                                Link</a>
+                                                style="display: inline-flex; align-items: center; gap: 4px; font-size: 11px; text-decoration: none;">
+                                                <span class="dashicons dashicons-external" style="font-size: 14px; width: 14px; height: 14px;"></span>
+                                                Link
+                                            </a>
                                         </div>
                                         <div style="display: flex; gap: 15px;">
                                             <div style="font-size: 13px;">
