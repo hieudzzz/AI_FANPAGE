@@ -108,17 +108,15 @@ class AIF_DB
 
         $where = '1=1';
         if ($args['status'] !== 'all') {
-            // Handle array of statuses if needed, for simplicity string check
-            $status = esc_sql($args['status']);
-            $where .= " AND status = '$status'";
+            $where .= $wpdb->prepare(" AND status = %s", $args['status']);
         }
 
-        // Future/Scheduled check logic could go here
-
-        $limit = intval($args['limit']);
+        $limit  = intval($args['limit']);
         $offset = intval($args['offset']);
-        $order = $args['order'] === 'ASC' ? 'ASC' : 'DESC';
-        $orderby = esc_sql($args['orderby']);
+        $order  = $args['order'] === 'ASC' ? 'ASC' : 'DESC';
+
+        $allowed_orderby = ['id', 'created_at', 'updated_at', 'title', 'status', 'time_posting'];
+        $orderby = in_array($args['orderby'], $allowed_orderby, true) ? $args['orderby'] : 'created_at';
 
         $sql = "SELECT * FROM $this->table_name WHERE $where ORDER BY $orderby $order LIMIT $limit OFFSET $offset";
 
