@@ -4,6 +4,11 @@
  */
 class AIF_N8N_Handler
 {
+    /**
+     * Token xác thực cho endpoint /wp-json/ai-fanpage/v1/n8n-chat
+     * Điền vào header X-AIF-Token khi gọi API từ N8N.
+     */
+    const API_TOKEN = 'ai-fanpage-n8n-2026-s3cr3t-k3y-x9z';
     private $db;
     private $ai;
     private $fb;

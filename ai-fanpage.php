@@ -2732,9 +2732,18 @@ add_action('rest_api_init', function () {
 
     register_rest_route('ai-fanpage/v1', '/n8n-chat', [
         [
-            'methods' => 'POST',
-            'callback' => [new AIF_N8N_Handler(), 'handle_chat'],
-            'permission_callback' => '__return_true',
+            'methods'             => 'POST',
+            'callback'            => [new AIF_N8N_Handler(), 'handle_chat'],
+            'permission_callback' => function (\WP_REST_Request $request) {
+                $incoming = $request->get_header('x_aif_token');
+                if (empty($incoming)) {
+                    return new \WP_Error('rest_forbidden', 'Missing X-AIF-Token header.', ['status' => 401]);
+                }
+                if (!hash_equals(AIF_N8N_Handler::API_TOKEN, $incoming)) {
+                    return new \WP_Error('rest_forbidden', 'Invalid token.', ['status' => 403]);
+                }
+                return true;
+            },
         ],
     ]);
 });
