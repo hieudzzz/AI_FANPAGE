@@ -349,7 +349,6 @@ class AIF_Facebook_Manager
         $table_queue = $wpdb->prefix . 'aif_posting_queue';
         $table_posts = $wpdb->prefix . 'aif_posts';
 
-        // So sánh trực tiếp bằng NOW() của MySQL để tránh lệch timezone PHP vs DB
         $sql = "SELECT q.id 
                 FROM $table_queue q
                 JOIN $table_posts p ON q.post_id = p.id
@@ -360,12 +359,13 @@ class AIF_Facebook_Manager
         $results = $wpdb->get_results($sql);
 
         if ($results) {
-            $now_php   = current_time('mysql');       // WP local time
-            $now_utc   = current_time('mysql', true); // UTC
-            error_log('[AIF] check_scheduled_posts: wp_local=' . $now_php . ' utc=' . $now_utc . ' found_scheduled=' . count($results));
+            $now_php   = current_time('mysql');
+            $now_utc   = current_time('mysql', true);
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                error_log('[AIF] check_scheduled_posts: wp_local=' . $now_php . ' utc=' . $now_utc . ' found_scheduled=' . count($results));
+            }
 
             foreach ($results as $row) {
-                // Lấy time_posting của item này
                 $item = $wpdb->get_row($wpdb->prepare(
                     "SELECT p.time_posting FROM $table_queue q JOIN $table_posts p ON q.post_id = p.id WHERE q.id = %d",
                     $row->id
@@ -373,20 +373,25 @@ class AIF_Facebook_Manager
 
                 if (!$item) continue;
 
-                error_log('[AIF] check_scheduled_posts: queue_id=' . $row->id . ' time_posting=' . $item->time_posting . ' now_php=' . $now_php);
+                if (defined('WP_DEBUG') && WP_DEBUG) {
+                    error_log('[AIF] check_scheduled_posts: queue_id=' . $row->id . ' time_posting=' . $item->time_posting . ' now_php=' . $now_php);
+                }
 
-                // Thử cả 2: so sánh với giờ local và UTC
                 if ($item->time_posting <= $now_php || $item->time_posting <= $now_utc) {
                     $wpdb->update(
                         $table_queue,
                         ['status' => 'pending'],
                         ['id' => $row->id]
                     );
-                    error_log('[AIF] check_scheduled_posts: queue_id=' . $row->id . ' -> changed to pending');
+                    if (defined('WP_DEBUG') && WP_DEBUG) {
+                        error_log('[AIF] check_scheduled_posts: queue_id=' . $row->id . ' -> changed to pending');
+                    }
                 }
             }
         } else {
-            error_log('[AIF] check_scheduled_posts: no scheduled items found');
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                error_log('[AIF] check_scheduled_posts: no scheduled items found');
+            }
         }
     }
 
@@ -396,16 +401,18 @@ class AIF_Facebook_Manager
         $table_queue = $wpdb->prefix . 'aif_posting_queue';
         $table_posts = $wpdb->prefix . 'aif_posts';
 
-        // Get Pending Items
         $items = $wpdb->get_results("SELECT * FROM $table_queue WHERE status = 'pending' LIMIT 5");
 
-        error_log('[AIF] process_queue: found ' . count((array)$items) . ' pending items');
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log('[AIF] process_queue: found ' . count((array)$items) . ' pending items');
+        }
 
-        if (empty($items))
-            return;
+        if (empty($items)) return;
 
         foreach ($items as $item) {
-            error_log('[AIF] process_queue: processing queue id=' . $item->id . ' post_id=' . $item->post_id . ' platform=' . $item->platform . ' page_id=' . $item->page_id);
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                error_log('[AIF] process_queue: processing queue id=' . $item->id . ' post_id=' . $item->post_id . ' platform=' . $item->platform . ' page_id=' . $item->page_id);
+            }
 
             // Mark as processing
             $wpdb->update($table_queue, ['status' => 'processing'], ['id' => $item->id]);

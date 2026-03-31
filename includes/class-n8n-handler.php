@@ -154,7 +154,7 @@ class AIF_N8N_Handler
         $response = wp_remote_get($url, ['timeout' => 15]);
 
         if (is_wp_error($response)) {
-            error_log('AIF FB Profile Error: ' . $response->get_error_message());
+            if (defined('WP_DEBUG') && WP_DEBUG) error_log('AIF FB Profile Error: ' . $response->get_error_message());
             return null;
         }
 
@@ -175,13 +175,13 @@ class AIF_N8N_Handler
         ));
 
         if (!$page) {
-            error_log("AIF N8N Handler: Page token not found for Page ID $page_id");
+            if (defined('WP_DEBUG') && WP_DEBUG) error_log("AIF N8N Handler: Page token not found for Page ID $page_id");
             return false;
         }
 
         $access_token = $this->fb->decrypt_token($page->access_token, $page->iv);
         if (!$access_token) {
-            error_log("AIF N8N Handler: Failed to decrypt token for Page ID $page_id");
+            if (defined('WP_DEBUG') && WP_DEBUG) error_log("AIF N8N Handler: Failed to decrypt token for Page ID $page_id");
             return false;
         }
 
@@ -205,13 +205,13 @@ class AIF_N8N_Handler
         $response = wp_remote_post($url, $args);
 
         if (is_wp_error($response)) {
-            error_log('AIF Facebook Send Error: ' . $response->get_error_message());
+            if (defined('WP_DEBUG') && WP_DEBUG) error_log('AIF Facebook Send Error: ' . $response->get_error_message());
             return false;
         }
 
         $code = wp_remote_retrieve_response_code($response);
         if ($code !== 200) {
-            error_log('AIF Facebook Send Error (HTTP ' . $code . '): ' . wp_remote_retrieve_body($response));
+            if (defined('WP_DEBUG') && WP_DEBUG) error_log('AIF Facebook Send Error (HTTP ' . $code . '): ' . wp_remote_retrieve_body($response));
             return false;
         }
 

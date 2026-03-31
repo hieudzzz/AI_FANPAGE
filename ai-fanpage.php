@@ -1137,17 +1137,9 @@ class AI_Fanpage
     {
         check_ajax_referer('aif_nonce', 'nonce');
 
-        error_log('[AIF] handle_force_run_cron: START');
-
         $manager = new AIF_Facebook_Manager();
-
-        error_log('[AIF] handle_force_run_cron: calling check_scheduled_posts');
         $manager->check_scheduled_posts();
-
-        error_log('[AIF] handle_force_run_cron: calling process_queue');
         $manager->process_queue();
-
-        error_log('[AIF] handle_force_run_cron: DONE');
 
         wp_send_json_success('Cron logic executed.');
     }
@@ -1625,6 +1617,7 @@ class AI_Fanpage
     public function handle_n8n_save_product()
     {
         check_ajax_referer('aif_nonce', 'nonce');
+        if (!current_user_can('manage_options')) wp_send_json_error('Unauthorized');
         $data = isset($_POST['product']) ? $_POST['product'] : [];
         if (empty($data['product_name'])) {
             wp_send_json_error('Missing Product Name');
@@ -1637,6 +1630,7 @@ class AI_Fanpage
     public function handle_n8n_delete_product()
     {
         check_ajax_referer('aif_nonce', 'nonce');
+        if (!current_user_can('manage_options')) wp_send_json_error('Unauthorized');
         $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
         if (!$id)
             wp_send_json_error('Invalid ID');
@@ -1648,6 +1642,7 @@ class AI_Fanpage
     public function handle_n8n_get_leads()
     {
         check_ajax_referer('aif_nonce', 'nonce');
+        if (!current_user_can('manage_options')) wp_send_json_error('Unauthorized');
         $db = new AIF_N8N_DB();
         $leads = $db->get_leads();
         wp_send_json_success($leads);
@@ -2544,6 +2539,16 @@ class AI_Fanpage
     public function handle_n8n_check_updates()
     {
         check_ajax_referer('aif_nonce', 'nonce');
+        if (!current_user_can('manage_options')) wp_send_json_error('Unauthorized');
+
+        // Rate limit: tối đa 1 request/giây/user — chặn JS vô tình spam
+        $user_id   = get_current_user_id();
+        $rate_key  = 'aif_poll_' . $user_id;
+        $last_call = get_transient($rate_key);
+        if ($last_call !== false) {
+            wp_send_json_success(['ready' => false, 'rate_limited' => true]);
+        }
+        set_transient($rate_key, 1, 1); // expire sau 1 giây
         global $wpdb;
         $table_messages = $wpdb->prefix . 'aif_n8n_messages';
         $table_chats    = $wpdb->prefix . 'aif_n8n_chats';
