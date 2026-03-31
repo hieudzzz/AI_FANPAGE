@@ -1015,6 +1015,10 @@ tr.locked .view-mode strong {
     width: 100% !important;
     color: var(--aif-text-main) !important;
     outline: none !important;
+    line-height: 1.4 !important;
+    min-height: 24px;
+    font-family: inherit !important;
+    display: block !important;
 }
 
 .aif-content-card {

@@ -742,8 +742,19 @@ endforeach; ?>
                                 <label style="font-size: 13px; font-weight: 700; color: #64748b; margin-bottom: 8px; display: block;">Tiêu đề bài viết</label>
                                 <div class="aif-title-wrapper">
                                     <span class="dashicons dashicons-edit"></span>
-                                    <input type="text" name="post_title" id="aif-title" class="aif-title-input"
-                                        value="<?php echo esc_attr($current_title); ?>" placeholder="Nhập tiêu đề hoặc để AI tự tạo...">
+                                    <textarea name="post_title" id="aif-title" class="aif-title-input" rows="1"
+                                        placeholder="Nhập tiêu đề hoặc để AI tự tạo..." 
+                                        style="overflow:hidden; resize:none; min-height: 44px; height: auto;"
+                                        oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'"><?php echo esc_textarea($current_title); ?></textarea>
+                                    <script>
+                                        document.addEventListener('DOMContentLoaded', function() {
+                                            const titleInput = document.getElementById('aif-title');
+                                            if (titleInput) {
+                                                titleInput.style.height = '';
+                                                titleInput.style.height = titleInput.scrollHeight + 'px';
+                                            }
+                                        });
+                                    </script>
                                 </div>
                             </div>
 
