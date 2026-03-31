@@ -1078,8 +1078,9 @@ class AI_Fanpage
 
         $manager = new AIF_Facebook_Manager();
         $result = $manager->update_page_info($id, [
-            'page_name' => isset($_POST['page_name']) ? wp_unslash($_POST['page_name']) : '',
-            'app_id'    => isset($_POST['app_id'])    ? wp_unslash($_POST['app_id'])    : '',
+            'page_name'  => isset($_POST['page_name'])  ? sanitize_text_field(wp_unslash($_POST['page_name']))  : '',
+            'app_id'     => isset($_POST['app_id'])     ? sanitize_text_field(wp_unslash($_POST['app_id']))     : '',
+            'app_secret' => isset($_POST['app_secret']) ? sanitize_text_field(wp_unslash($_POST['app_secret'])) : '',
         ]);
 
         if ($result['success']) {

@@ -384,8 +384,9 @@ if ($pages) {
                                                 <button class="aif-btn aif-btn-outline btn-edit-fanpage"
                                                         data-id="'       . $page->id . '"
                                                         data-name="'     . esc_attr($page->page_name) . '"
-                                                        data-appid="'    . esc_attr($page->app_id ?? '') . '"
                                                         data-pageid="'   . esc_attr($page->page_id) . '"
+                                                        data-appid="'    . esc_attr($page->app_id ?? '') . '"
+                                                        data-has-app="'  . ($has_app ? '1' : '0') . '"
                                                         title="Chỉnh sửa">
                                                     <span class="dashicons dashicons-edit" style="font-size:16px;"></span>
                                                 </button>
@@ -442,20 +443,30 @@ if ($pages) {
         </div>
         <div style="padding:24px;">
             <input type="hidden" id="edit-fanpage-id">
-            <div style="margin-bottom:8px;padding:10px 14px;background:#f0f9ff;border-radius:8px;border:1px solid #bae6fd;display:flex;align-items:center;gap:8px;">
+            <div style="margin-bottom:16px;padding:10px 14px;background:#f0f9ff;border-radius:8px;border:1px solid #bae6fd;display:flex;align-items:center;gap:8px;">
                 <span class="dashicons dashicons-lock" style="color:#0284c7;font-size:15px;width:15px;height:15px;flex-shrink:0;"></span>
                 <span style="font-size:12px;color:#0369a1;">Page ID: <b id="edit-fanpage-page-id-display"></b> — không thể thay đổi</span>
             </div>
-            <div style="margin-bottom:18px;margin-top:18px;">
+            <div style="margin-bottom:18px;">
                 <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">Tên Fanpage <span style="color:#ef4444;">*</span></label>
                 <input type="text" id="edit-fanpage-name" class="aif-input" placeholder="Tên hiển thị của Fanpage">
             </div>
-            <div style="margin-bottom:8px;">
-                <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">
-                    App ID <span style="font-weight:400;color:#94a3b8;font-size:11px;">(để trống nếu không đổi)</span>
-                </label>
+            <div style="margin-bottom:18px;">
+                <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">App ID</label>
                 <input type="text" id="edit-fanpage-appid" class="aif-input" placeholder="App ID Facebook">
-                <p class="aif-help-text">Dùng để gia hạn Token tự động. Nếu sửa App ID thì cần cập nhật lại Token.</p>
+            </div>
+            <div>
+                <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">
+                    App Secret <span style="font-weight:400;color:#94a3b8;font-size:11px;">(để trống nếu không đổi)</span>
+                </label>
+                <div style="position:relative;">
+                    <input type="password" id="edit-fanpage-appsecret" class="aif-input" placeholder="••••••••••••••••" style="padding-right:44px;" autocomplete="new-password">
+                    <button type="button" id="edit-appsecret-toggle" title="Hiện/ẩn"
+                        style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#94a3b8;padding:4px;">
+                        <span class="dashicons dashicons-visibility" style="font-size:16px;width:16px;height:16px;"></span>
+                    </button>
+                </div>
+                <p class="aif-help-text">App Secret được mã hóa AES-256 trước khi lưu.</p>
             </div>
         </div>
         <div style="padding:16px 24px;border-top:1px solid #f1f5f9;display:flex;justify-content:flex-end;gap:10px;background:#fafafa;">
@@ -562,8 +573,9 @@ if ($pages) {
                      .toggleClass('dashicons-hidden',     isPass);
             });
         }
-        bindToggle('token-toggle-visibility',   'token-new-value');
+        bindToggle('token-toggle-visibility',    'token-new-value');
         bindToggle('appsecret-toggle-visibility','token-app-secret');
+        bindToggle('edit-appsecret-toggle',      'edit-fanpage-appsecret');
 
         // ══════════════════════════════════════════════════════
         // MODAL: EDIT FANPAGE
@@ -573,7 +585,9 @@ if ($pages) {
             $('#edit-fanpage-id').val($b.data('id'));
             $('#edit-fanpage-name').val($b.data('name'));
             $('#edit-fanpage-appid').val($b.data('appid') || '');
+            $('#edit-fanpage-appsecret').val('').attr('type','password');
             $('#edit-fanpage-page-id-display').text($b.data('pageid'));
+            $('#edit-appsecret-toggle .dashicons').removeClass('dashicons-hidden').addClass('dashicons-visibility');
             $('#edit-modal-subtitle').text('Đang sửa: ' + $b.data('name'));
             $('#aif-edit-fanpage-modal').css('display', 'flex');
             setTimeout(function() { $('#edit-fanpage-name').focus().select(); }, 100);
@@ -585,22 +599,45 @@ if ($pages) {
         $('#aif-edit-fanpage-modal').on('click', function(e) { if (e.target === this) closeEditModal(); });
 
         $('#edit-fanpage-save').on('click', function() {
-            var id    = $('#edit-fanpage-id').val();
-            var name  = $('#edit-fanpage-name').val().trim();
-            var appId = $('#edit-fanpage-appid').val().trim();
+            var id        = $('#edit-fanpage-id').val();
+            var name      = $('#edit-fanpage-name').val().trim();
+            var appId     = $('#edit-fanpage-appid').val().trim();
+            var appSecret = $('#edit-fanpage-appsecret').val().trim();
+
             if (!name) { AIF_Toast && AIF_Toast.show('Vui lòng nhập tên Fanpage.', 'error'); $('#edit-fanpage-name').focus(); return; }
 
             var $btn = $(this).prop('disabled', true);
             var orig = $btn.html();
             $btn.html('<span class="dashicons dashicons-update" style="font-size:15px;width:15px;height:15px;display:inline-block;animation:rotation 1s linear infinite;"></span> Đang lưu...');
 
-            $.post(aif_ajax.ajax_url, { action:'aif_edit_fanpage', nonce:aif_ajax.nonce, id:id, page_name:name, app_id:appId }, function(res) {
-                $btn.prop('disabled', false).html(orig);
-                if (res.success) {
-                    AIF_Toast && AIF_Toast.show('Đã cập nhật Fanpage!', 'success');
-                    closeEditModal();
-                    setTimeout(function() { location.reload(); }, 800);
-                } else { AIF_Toast && AIF_Toast.show('Lỗi: ' + res.data, 'error'); }
+            $.ajax({
+                url: aif_ajax.ajax_url,
+                type: 'POST',
+                timeout: 8000,
+                data: { action: 'aif_edit_fanpage', nonce: aif_ajax.nonce, id: id, page_name: name, app_id: appId, app_secret: appSecret },
+                success: function(res) {
+                    $btn.prop('disabled', false).html(orig);
+                    if (res.success) {
+                        AIF_Toast && AIF_Toast.show('Đã cập nhật!', 'success');
+                        // Cập nhật DOM trực tiếp — không reload cả trang
+                        var $row = $('.btn-edit-fanpage[data-id="' + id + '"]').closest('tr');
+                        $row.find('td:first .font-weight-700, td:first div[style*="font-weight:700"]').text(name);
+                        $row.find('.btn-edit-fanpage[data-id="' + id + '"]')
+                            .data('name', name)
+                            .data('appid', appId || $row.find('.btn-edit-fanpage').data('appid'));
+                        if (appId) {
+                            $row.find('.aif-badge-danger').replaceWith('<span class="aif-badge aif-badge-success" style="padding:2px 6px;font-size:9px;margin-top:5px;">APP OK</span>');
+                        }
+                        closeEditModal();
+                    } else {
+                        AIF_Toast && AIF_Toast.show('Lỗi: ' + res.data, 'error');
+                    }
+                },
+                error: function(xhr, status) {
+                    $btn.prop('disabled', false).html(orig);
+                    var msg = status === 'timeout' ? 'Timeout — server phản hồi quá chậm.' : 'Lỗi kết nối server.';
+                    AIF_Toast && AIF_Toast.show(msg, 'error');
+                }
             });
         });
 

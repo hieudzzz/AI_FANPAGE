@@ -129,6 +129,7 @@ class AIF_Facebook_Manager
     {
         global $wpdb;
         $table_name = $wpdb->prefix . 'aif_facebook_pages';
+        // app_id trả về để pre-fill form admin, app_secret KHÔNG trả về
         return $wpdb->get_results("SELECT id, page_name, page_id, expires_at, app_id, created_at FROM $table_name ORDER BY id DESC");
     }
 
@@ -201,8 +202,15 @@ class AIF_Facebook_Manager
         if (!empty($data['page_name'])) {
             $update['page_name'] = sanitize_text_field($data['page_name']);
         }
-        if (isset($data['app_id'])) {
+        // Page ID: KHÔNG cho sửa — là định danh cố định liên kết queue/chat/leads
+        if (isset($data['app_id']) && $data['app_id'] !== '') {
             $update['app_id'] = sanitize_text_field($data['app_id']);
+        }
+        // App Secret: encrypt trước khi lưu
+        if (!empty($data['app_secret'])) {
+            $enc = $this->encrypt_token(sanitize_text_field($data['app_secret']));
+            $update['app_secret'] = $enc['encrypted'];
+            $update['app_iv']     = $enc['iv'];
         }
 
         if (empty($update)) {
