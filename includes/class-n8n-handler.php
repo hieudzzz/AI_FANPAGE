@@ -60,7 +60,7 @@ class AIF_N8N_Handler
         $this->db->save_message($session->id, 'user', $user_text);
 
         // --- STEP 2: Retrieve Context (History) ---
-        $context_limit = get_option('aif_n8n_context_limit', 5);
+        $context_limit = max(1, min(50, (int) AIF_Settings::get('n8n_context_limit', 5)));
         $history = $this->db->get_recent_messages($session->id, $context_limit);
 
         // --- STEP 3: Load Product Database ---

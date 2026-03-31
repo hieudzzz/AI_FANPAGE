@@ -29,8 +29,9 @@ class AIF_N8N_AI
         $collected_data   = json_decode($session->collected_data, true);
         $current_field    = $session->current_field;
         $history_context  = $this->format_history($history);
-        $custom_prompt    = get_option('aif_n8n_system_prompt', '');
-        $cs_info          = get_option('aif_n8n_cs_info', '');
+        // Dùng AIF_Settings thay vì wp_options — sanitize khi load để tránh prompt injection
+        $custom_prompt    = sanitize_textarea_field( AIF_Settings::get('n8n_system_prompt', '') );
+        $cs_info          = sanitize_textarea_field( AIF_Settings::get('n8n_cs_info', '') );
         $customer_name    = !empty($session->customer_name) ? $session->customer_name : 'Khách hàng';
         $policy_context   = AI_Fanpage::get_active_policies_text();
 

@@ -164,6 +164,32 @@ class AI_Fanpage
             $wpdb->query("ALTER TABLE {$wpdb->prefix}aif_n8n_leads ADD COLUMN viewed_at datetime DEFAULT NULL AFTER is_viewed");
         }
 
+        // Migration: chuyển n8n settings từ wp_options sang aif_settings (chạy 1 lần)
+        if (!AIF_Settings::get('n8n_options_migrated', false)) {
+            $old_prompt = get_option('aif_n8n_system_prompt', null);
+            $old_cs     = get_option('aif_n8n_cs_info', null);
+            $old_limit  = get_option('aif_n8n_context_limit', null);
+            if ($old_prompt !== null) {
+                AIF_Settings::set('n8n_system_prompt', sanitize_textarea_field($old_prompt));
+                delete_option('aif_n8n_system_prompt');
+            }
+            if ($old_cs !== null) {
+                AIF_Settings::set('n8n_cs_info', sanitize_textarea_field($old_cs));
+                delete_option('aif_n8n_cs_info');
+            }
+            if ($old_limit !== null) {
+                AIF_Settings::set('n8n_context_limit', max(1, min(50, intval($old_limit))));
+                delete_option('aif_n8n_context_limit');
+            }
+            AIF_Settings::set('n8n_options_migrated', true);
+        }
+
+        // Đảm bảo .htaccess bảo vệ thư mục upload luôn tồn tại
+        $upload_dir = AIF_PATH . 'upload/';
+        if (file_exists($upload_dir)) {
+            $this->ensure_upload_htaccess($upload_dir);
+        }
+
         require_once AIF_PATH . 'includes/class-google-sheet.php';
         require_once AIF_PATH . 'includes/class-ai-generator.php';
         require_once AIF_PATH . 'includes/class-media-manager.php';
@@ -214,35 +240,39 @@ class AI_Fanpage
 
         $file = $_FILES['file'];
 
-        // Basic error check
         if ($file['error'] !== UPLOAD_ERR_OK) {
             wp_send_json_error('Upload error code: ' . $file['error']);
         }
 
-        // Validate type (basic)
-        $file_type = wp_check_filetype(basename($file['name']));
-        $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4'];
+        // --- Validate extension ---
+        $allowed_exts  = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4'];
+        $ext           = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        if (!in_array($ext, $allowed_exts, true)) {
+            wp_send_json_error('Định dạng file không được phép.');
+        }
 
-        // Let's rely on standard extension check or MIME type
-        // The previous media-library logic just used move_uploaded_file with whatever was accepted by html input
-        // For security, enforcing some check is good
+        // --- Validate MIME type thật (finfo đọc magic bytes, không tin extension) ---
+        $allowed_mimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4'];
+        $real_mime     = self::get_real_mime($file['tmp_name']);
+        if (!in_array($real_mime, $allowed_mimes, true)) {
+            wp_send_json_error('MIME type không hợp lệ: ' . esc_html($real_mime));
+        }
 
-        $filename = sanitize_file_name($file['name']);
-
-        // Ensure unique filename to prevent overwrites (Optional but recommended, though old code didn't do it)
-        $upload_dir = AIF_PATH . 'upload/';
+        $filename    = sanitize_file_name($file['name']);
+        $upload_dir  = AIF_PATH . 'upload/';
         if (!file_exists($upload_dir)) {
-            mkdir($upload_dir, 0755, true);
+            wp_mkdir_p($upload_dir);
+            $this->ensure_upload_htaccess($upload_dir);
         }
 
         // Handle uniqueness
         $target_file = $upload_dir . $filename;
-        $file_parts = pathinfo($filename);
-        $name = $file_parts['filename'];
-        $ext = isset($file_parts['extension']) ? '.' . $file_parts['extension'] : '';
+        $file_parts  = pathinfo($filename);
+        $name        = $file_parts['filename'];
+        $dotExt      = '.' . $ext;
         $i = 1;
         while (file_exists($target_file)) {
-            $filename = $name . '-' . $i . $ext;
+            $filename    = $name . '-' . $i . $dotExt;
             $target_file = $upload_dir . $filename;
             $i++;
         }
@@ -250,7 +280,7 @@ class AI_Fanpage
         if (move_uploaded_file($file['tmp_name'], $target_file)) {
             wp_send_json_success([
                 'filename' => $filename,
-                'url' => AIF_URL . 'upload/' . $filename
+                'url'      => AIF_URL . 'upload/' . $filename,
             ]);
         } else {
             wp_send_json_error('Failed to move uploaded file');
@@ -260,6 +290,43 @@ class AI_Fanpage
     // ─── Media Library: helpers ───────────────────────────────────────────────
 
     // ─── Media helpers ────────────────────────────────────────────────────────
+
+    /**
+     * Đọc MIME type thật từ magic bytes của file (không tin extension hay $_FILES['type']).
+     * Fallback sang mime_content_type() nếu finfo không có.
+     */
+    private static function get_real_mime($tmp_path)
+    {
+        if (function_exists('finfo_open')) {
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mime  = finfo_file($finfo, $tmp_path);
+            finfo_close($finfo);
+            return $mime;
+        }
+        if (function_exists('mime_content_type')) {
+            return mime_content_type($tmp_path);
+        }
+        // Last resort: dùng WP (vẫn tốt hơn không check gì)
+        $data = wp_check_filetype_and_ext($tmp_path, basename($tmp_path));
+        return isset($data['type']) ? $data['type'] : '';
+    }
+
+    /**
+     * Đảm bảo .htaccess bảo vệ luôn tồn tại trong thư mục upload.
+     * Gọi mỗi khi tạo thư mục upload mới.
+     */
+    private function ensure_upload_htaccess($dir)
+    {
+        $htaccess = rtrim($dir, '/\\') . '/.htaccess';
+        if (file_exists($htaccess)) return;
+        $content  = "# Chặn thực thi tất cả file script\n";
+        $content .= "<FilesMatch \"\.(php|php3|php4|php5|php7|php8|phtml|phar|pl|py|jsp|asp|aspx|sh|cgi)$\">\n";
+        $content .= "    <IfModule mod_authz_core.c>\n        Require all denied\n    </IfModule>\n";
+        $content .= "    <IfModule !mod_authz_core.c>\n        Order allow,deny\n        Deny from all\n    </IfModule>\n";
+        $content .= "</FilesMatch>\n";
+        $content .= "Options -Indexes\n";
+        file_put_contents($htaccess, $content);
+    }
 
     private function media_upload_base()
     {
@@ -461,9 +528,19 @@ class AI_Fanpage
         $base       = $this->media_upload_base();
         $file       = $_FILES['file'];
         if ($file['error'] !== UPLOAD_ERR_OK) wp_send_json_error('Upload error: ' . $file['error']);
+
+        // --- Validate extension ---
         $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4'];
         $ext     = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-        if (!in_array($ext, $allowed)) wp_send_json_error('Định dạng không được phép.');
+        if (!in_array($ext, $allowed, true)) wp_send_json_error('Định dạng không được phép.');
+
+        // --- Validate MIME type thật (finfo đọc magic bytes) ---
+        $allowed_mimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4'];
+        $real_mime     = self::get_real_mime($file['tmp_name']);
+        if (!in_array($real_mime, $allowed_mimes, true)) {
+            wp_send_json_error('MIME type không hợp lệ: ' . esc_html($real_mime));
+        }
+
         $filename = sanitize_file_name($file['name']);
         $parts    = pathinfo($filename);
         $dotExt   = '.' . $ext;
@@ -476,6 +553,7 @@ class AI_Fanpage
         }
         if (!file_exists($base)) {
             wp_mkdir_p($base);
+            $this->ensure_upload_htaccess($base);
         }
         if (!is_writable($base)) {
             wp_send_json_error('Thư mục upload không có quyền ghi. Vui lòng kiểm tra quyền truy cập của thư mục: ' . $base);
@@ -1626,10 +1704,13 @@ class AI_Fanpage
     public function handle_n8n_get_settings()
     {
         check_ajax_referer('aif_nonce', 'nonce');
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Permission denied');
+        }
         $settings = [
-            'system_prompt' => get_option('aif_n8n_system_prompt', ''),
-            'cs_info'       => get_option('aif_n8n_cs_info', ''),
-            'context_limit' => get_option('aif_n8n_context_limit', 5),
+            'system_prompt' => AIF_Settings::get('n8n_system_prompt', ''),
+            'cs_info'       => AIF_Settings::get('n8n_cs_info', ''),
+            'context_limit' => (int) AIF_Settings::get('n8n_context_limit', 5),
         ];
         wp_send_json_success($settings);
     }
@@ -1641,13 +1722,21 @@ class AI_Fanpage
             wp_send_json_error('Permission denied');
         }
 
-        $system_prompt = isset($_POST['system_prompt']) ? wp_kses_post(wp_unslash($_POST['system_prompt'])) : '';
-        $cs_info       = isset($_POST['cs_info']) ? wp_kses_post(wp_unslash($_POST['cs_info'])) : '';
-        $context_limit = isset($_POST['context_limit']) ? intval($_POST['context_limit']) : 5;
+        // sanitize_textarea_field: strip HTML tags, encode special chars — an toàn cho system prompt
+        // (wp_kses_post giữ lại HTML tags, không phù hợp cho text thuần gửi vào AI)
+        $system_prompt = isset($_POST['system_prompt'])
+            ? sanitize_textarea_field(wp_unslash($_POST['system_prompt']))
+            : '';
+        $cs_info       = isset($_POST['cs_info'])
+            ? sanitize_textarea_field(wp_unslash($_POST['cs_info']))
+            : '';
+        $context_limit = isset($_POST['context_limit'])
+            ? max(1, min(50, intval($_POST['context_limit'])))
+            : 5;
 
-        update_option('aif_n8n_system_prompt', $system_prompt);
-        update_option('aif_n8n_cs_info', $cs_info);
-        update_option('aif_n8n_context_limit', $context_limit);
+        AIF_Settings::set('n8n_system_prompt', $system_prompt);
+        AIF_Settings::set('n8n_cs_info', $cs_info);
+        AIF_Settings::set('n8n_context_limit', $context_limit);
 
         wp_send_json_success('Settings saved');
     }
